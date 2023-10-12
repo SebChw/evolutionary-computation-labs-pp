@@ -1,11 +1,11 @@
 import random
 
 
-def nearest_neighbor_hamiltonian(adj_matrix: list[list[int]]):
+def nearest_neighbor_hamiltonian(adj_matrix: list[list[int]], starting_node: int = None):
     num_nodes = len(adj_matrix)
     num_selected = (num_nodes + 1) // 2
 
-    starting_node = random.randint(0, num_nodes - 1)
+    starting_node = random.randint(0, num_nodes - 1) if starting_node is None else starting_node
 
     selected_nodes = [starting_node]
     selected_set = {starting_node}

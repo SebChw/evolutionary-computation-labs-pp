@@ -1,7 +1,7 @@
 import random
 
 
-def random_hamiltonian(adj_matrix: list[list[int]]):
+def random_hamiltonian(adj_matrix: list[list[int]], starting_node: int = None):
     num_nodes = len(adj_matrix)
     num_selected = (num_nodes + 1) // 2
 

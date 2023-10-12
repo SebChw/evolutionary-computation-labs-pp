@@ -22,9 +22,9 @@ ALGORITHMS = {
 def main():
     parser = argparse.ArgumentParser(
         description="Run Hamiltonian path algorithms.")
-    for algo_name in ALGORITHMS.keys():
-        parser.add_argument(f'--{algo_name}', type=int,
-                            help=f'Number of runs for {algo_name} algorithm')
+    for algorithm_name in ALGORITHMS.keys():
+        parser.add_argument(f'--{algorithm_name}', type=int,
+                            help=f'Number of runs for {algorithm_name} algorithm')
 
     args = parser.parse_args()
 
@@ -32,15 +32,15 @@ def main():
 
     solutions = defaultdict(lambda: defaultdict(list))
 
-    for algo_name, algo_func in ALGORITHMS.items():
-        runs = getattr(args, algo_name)
+    for algorithm_name, algorithm_function in ALGORITHMS.items():
+        runs = getattr(args, algorithm_name)
         if runs:
             for problem, adj_matrix in data.items():
-                for _ in range(runs):
-                    nodes = algo_func(adj_matrix)
+                for i in range(runs):
+                    nodes = algorithm_function(adj_matrix, i)
                     solution = Solution(
                         nodes=nodes, cost=calculate_path_cost(nodes, adj_matrix))
-                    solutions[problem][algo_name].append(asdict(solution))
+                    solutions[problem][algorithm_name].append(asdict(solution))
 
     with open('solutions.json', 'w') as file:
         json.dump(dict(solutions), file, indent=4)
