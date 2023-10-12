@@ -40,30 +40,33 @@ def plot_solution(matrix: list[list[int]], best_solutions: dict, problem_name: s
     plt.savefig(f"visualizations/{problem_name}_{algorithm_name}.png")
 
 
+def compute_best_solution(algorithm_solutions: list) -> dict:
+    best = min(algorithm_solutions, key=lambda solution: solution['cost'])
+    return {'cost': best['cost'], 'nodes': best['nodes']}
+
+def compute_worst_solution(algorithm_solutions: list) -> dict:
+    worst = max(algorithm_solutions, key=lambda solution: solution['cost'])
+    return {'cost': worst['cost'], 'nodes': worst['nodes']}
+
+def compute_average_cost(algorithm_solutions: list) -> dict:
+    average = sum(solution['cost'] for solution in algorithm_solutions) / len(algorithm_solutions)
+    return {'cost': average, 'nodes': None}
+
 def get_extremes(solutions: dict):
     best_solutions = {}
     worst_solutions = {}
     average_solutions = {}
-    for problem in solutions.keys():
+    
+    for problem, algorithms in solutions.items():
         best_solutions[problem] = {}
         worst_solutions[problem] = {}
         average_solutions[problem] = {}
-        for algorithm_name, algorithm_solutions in solutions[problem].items():
-            best_solution = min(algorithm_solutions, key=lambda solution: solution['cost'])
-            worst_solution = max(algorithm_solutions, key=lambda solution: solution['cost'])
-            average_solution = sum(solution['cost'] for solution in algorithm_solutions) / len(algorithm_solutions)
-            best_solutions[problem][algorithm_name] = {
-                'cost': best_solution['cost'],
-                'nodes': best_solution['nodes']
-            }
-            worst_solutions[problem][algorithm_name] = {
-                'cost': worst_solution['cost'],
-                'nodes': worst_solution['nodes']
-            }
-            average_solutions[problem][algorithm_name] = {
-                'cost': average_solution,
-                'nodes': None
-            }
+        
+        for algorithm_name, algorithm_solutions in algorithms.items():
+            best_solutions[problem][algorithm_name] = compute_best_solution(algorithm_solutions)
+            worst_solutions[problem][algorithm_name] = compute_worst_solution(algorithm_solutions)
+            average_solutions[problem][algorithm_name] = compute_average_cost(algorithm_solutions)
+
     return best_solutions, worst_solutions, average_solutions
 
 
