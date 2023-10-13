@@ -25,7 +25,7 @@ def plot_solution(matrix: list[list[int]], best_solutions: dict, problem_name: s
 
     normalized_costs = (costs - np.min(costs)) / (np.max(costs) - np.min(costs))
 
-    plt.scatter(x_coords, y_coords, s=300, c=normalized_costs, cmap='Blues_r', alpha=0.6)
+    plt.scatter(x_coords, y_coords, s=700, c=normalized_costs, cmap='coolwarm', alpha=0.6)
 
     for i in range(len(nodes) - 1):
         x1, y1 = matrix[nodes[i]][:2]
