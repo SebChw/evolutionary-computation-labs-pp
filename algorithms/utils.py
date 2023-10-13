@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import numpy as np
+
 
 @dataclass
 class Solution:
@@ -7,10 +9,10 @@ class Solution:
     cost: float
 
 
-def calculate_path_cost(nodes: list[int], adj_matrix: list[list[int]]):
-    total_cost = 0
-    for i in range(len(nodes) - 1):
-        start_node = nodes[i]
-        end_node = nodes[i+1]
-        total_cost += adj_matrix[start_node][end_node]
+def calculate_path_cost(
+    nodes: list[int], adj_matrix: np.ndarray, nodes_cost: np.ndarray
+):
+    total_cost = np.sum(nodes_cost[nodes])
+    total_cost += np.sum(adj_matrix[nodes, nodes[1:] + [nodes[0]]])
+
     return total_cost
