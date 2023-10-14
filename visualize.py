@@ -32,7 +32,8 @@ def plot_solution(
     y_coords = [matrix[node][1] for node in nodes]
     costs = [matrix[node][2] for node in nodes]
 
-    normalized_costs = (costs - np.min(costs)) / (np.max(costs) - np.min(costs))
+    normalized_costs = (costs - np.min(costs)) / \
+        (np.max(costs) - np.min(costs))
 
     plt.scatter(
         x_coords, y_coords, s=700, c=normalized_costs, cmap="coolwarm", alpha=0.6
@@ -96,22 +97,26 @@ def get_extremes(solutions: dict):
 
 
 def create_table_data(best_solutions, worst_solutions, average_solutions):
-    headers = [
-        "Problem",
-        "Algorithm",
-        "Best Solution",
-        "Worst Solution",
-        "Average Solution",
-    ]
+    headers = ["Problem"]
+
+    for algorithm_name in best_solutions[list(best_solutions.keys())[0]].keys():
+        headers.extend([
+            f"{algorithm_name} Best",
+            f"{algorithm_name} Worst",
+            f"{algorithm_name} Average"
+        ])
+
     rows = []
+
     for problem_name in best_solutions.keys():
+        row = [problem_name]
         for algorithm_name in best_solutions[problem_name].keys():
             best_cost = best_solutions[problem_name][algorithm_name]["cost"]
             worst_cost = worst_solutions[problem_name][algorithm_name]["cost"]
             average_cost = average_solutions[problem_name][algorithm_name]["cost"]
-            rows.append(
-                [problem_name, algorithm_name, best_cost, worst_cost, average_cost]
-            )
+            row.extend([best_cost, worst_cost, average_cost])
+        rows.append(row)
+
     return headers, rows
 
 
@@ -119,7 +124,7 @@ def save_results(best_solutions, worst_solutions, average_solutions):
     headers, data = create_table_data(
         best_solutions, worst_solutions, average_solutions
     )
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(15, 5))
     plt.axis("off")
     plt.table(cellText=data, colLabels=headers, loc="center")
     plt.savefig("visualizations/table.png")
@@ -129,7 +134,8 @@ def main():
     with open("solutions.json", "r") as file:
         solutions = json.load(file)
 
-    best_solutions, worst_solutions, average_solutions = get_extremes(solutions)
+    best_solutions, worst_solutions, average_solutions = get_extremes(
+        solutions)
 
     data = get_data()
     for problem_name in data.keys():

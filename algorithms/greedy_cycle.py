@@ -9,10 +9,12 @@ def greedy_cycle(
     num_nodes = len(adj_matrix)
 
     starting_node = (
-        random.randint(0, num_nodes - 1) if starting_node is None else starting_node
+        random.randint(
+            0, num_nodes - 1) if starting_node is None else starting_node
     )
 
-    first, second = np.argpartition(adj_matrix[starting_node] + nodes_cost, 2)[:2]
+    first, second = np.argpartition(
+        adj_matrix[starting_node] + nodes_cost, 2)[:2]
     cheapest_node = int(first) if first != starting_node else int(second)
 
     cycle = [starting_node, cheapest_node, starting_node]

@@ -15,7 +15,8 @@ def create_adj_matrix(data):
         for j in range(num_nodes):
             if i != j:
                 distance = np.sqrt(
-                    (data[i, 0] - data[j, 0]) ** 2 + (data[i, 1] - data[j, 1]) ** 2
+                    (data[i, 0] - data[j, 0]) ** 2 +
+                    (data[i, 1] - data[j, 1]) ** 2
                 )
 
                 #! I'd prefer to keep these costs separately. In some algorithms we can potentially weight them etc.
@@ -50,5 +51,7 @@ def get_data():
 if __name__ == "__main__":
     for id_ in ["A", "B", "C", "D"]:
         data = load_matrix_from_csv(f"TSP{id_}.csv")
-        assert np.array_equal(create_adj_matrix_np(data), create_adj_matrix(data))
-        assert np.array_equal(create_adj_matrix(data), create_adj_matrix_scipy(data))
+        assert np.array_equal(create_adj_matrix_np(data),
+                              create_adj_matrix(data))
+        assert np.array_equal(create_adj_matrix(
+            data), create_adj_matrix_scipy(data))

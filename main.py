@@ -19,7 +19,8 @@ ALGORITHMS = {
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Hamiltonian path algorithms.")
+    parser = argparse.ArgumentParser(
+        description="Run Hamiltonian path algorithms.")
     for algorithm_name in ALGORITHMS.keys():
         parser.add_argument(
             f"--{algorithm_name}",
@@ -49,7 +50,8 @@ def main():
                 for nodes in all_nodes:
                     solution = Solution(
                         nodes=nodes,
-                        cost=calculate_path_cost(nodes, distance_matrix, nodes_cost),
+                        cost=calculate_path_cost(
+                            nodes, distance_matrix, nodes_cost),
                     )
                     solutions[problem][algorithm_name].append(asdict(solution))
 
