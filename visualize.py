@@ -44,9 +44,20 @@ def plot_solution(
         x2, y2 = matrix[nodes[i + 1]][:2]
         plt.plot([x1, x2], [y1, y2], color="gray", alpha=0.6)
 
+    other_nodes = [node for node in range(len(matrix)) if node not in nodes]
+    other_costs = [matrix[node][2] for node in other_nodes]
+    other_x_coords = [matrix[node][0] for node in other_nodes]
+    other_y_coords = [matrix[node][1] for node in other_nodes]
+    other_normalized_costs = (other_costs - np.min(other_costs)) / \
+        (np.max(other_costs) - np.min(other_costs))
+
+    plt.scatter(
+        other_x_coords, other_y_coords, s=100, c=other_normalized_costs, cmap="coolwarm", alpha=0.6
+    )
+
     plt.title(
         f"Visualization for {problem_name} using {algorithm_name}. Value={solution['cost']}",
-        fontsize=48,
+        fontsize=60,
     )
     plt.xticks(fontsize=36)
     plt.yticks(fontsize=36)
