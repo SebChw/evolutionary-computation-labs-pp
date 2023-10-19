@@ -8,6 +8,8 @@ from joblib import Parallel, delayed
 from algorithms.greedy_cycle import greedy_cycle
 from algorithms.nn import nearest_neighbor_hamiltonian
 from algorithms.random import random_hamiltonian
+from algorithms.greedy_2_regret import greedy_2_regret
+from algorithms.greedy_2_regret_weighted import greedy_2_regret_weighted
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
 
@@ -15,6 +17,8 @@ ALGORITHMS = {
     "random": random_hamiltonian,
     "nn": nearest_neighbor_hamiltonian,
     "greedy": greedy_cycle,
+    "greedy_2_regret": greedy_2_regret,
+    "greedy_2_regret_weighted": greedy_2_regret_weighted,
 }
 
 
@@ -38,6 +42,7 @@ def main():
         runs = getattr(args, algorithm_name)
         if runs:
             for problem, instance in data.items():
+                print(f"Running {algorithm_name} on {problem}...")
                 distance_matrix = instance["dist_matrix"]
                 nodes_cost = instance["nodes_cost"]
 

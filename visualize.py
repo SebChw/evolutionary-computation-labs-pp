@@ -36,7 +36,7 @@ def plot_solution(
         (np.max(costs) - np.min(costs))
 
     plt.scatter(
-        x_coords, y_coords, s=700, c=normalized_costs, cmap="coolwarm", alpha=0.6
+        x_coords, y_coords, s=1200, c=normalized_costs, cmap="coolwarm", alpha=0.6
     )
 
     for i in range(len(nodes) - 1):
@@ -52,7 +52,7 @@ def plot_solution(
         (np.max(other_costs) - np.min(other_costs))
 
     plt.scatter(
-        other_x_coords, other_y_coords, s=100, c=other_normalized_costs, cmap="coolwarm", alpha=0.6
+        other_x_coords, other_y_coords, s=1200, c=other_normalized_costs, cmap="coolwarm", alpha=0.6
     )
 
     plt.title(
