@@ -5,11 +5,10 @@ from dataclasses import asdict
 
 from joblib import Parallel, delayed
 
+from algorithms.greedy_2_regret import Greedy2Regret
 from algorithms.greedy_cycle import greedy_cycle
 from algorithms.nn import nearest_neighbor_hamiltonian
 from algorithms.random import random_hamiltonian
-from algorithms.greedy_2_regret import greedy_2_regret
-from algorithms.greedy_2_regret_weighted import greedy_2_regret_weighted
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
 
@@ -17,14 +16,13 @@ ALGORITHMS = {
     "random": random_hamiltonian,
     "nn": nearest_neighbor_hamiltonian,
     "greedy": greedy_cycle,
-    "greedy_2_regret": greedy_2_regret,
-    "greedy_2_regret_weighted": greedy_2_regret_weighted,
+    "greedy_2_regret": Greedy2Regret(),
+    "greedy_2_regret_weighted": Greedy2Regret(alpha=0.5),
 }
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run Hamiltonian path algorithms.")
+    parser = argparse.ArgumentParser(description="Run Hamiltonian path algorithms.")
     for algorithm_name in ALGORITHMS.keys():
         parser.add_argument(
             f"--{algorithm_name}",
@@ -55,8 +53,7 @@ def main():
                 for nodes in all_nodes:
                     solution = Solution(
                         nodes=nodes,
-                        cost=calculate_path_cost(
-                            nodes, distance_matrix, nodes_cost),
+                        cost=calculate_path_cost(nodes, distance_matrix, nodes_cost),
                     )
                     solutions[problem][algorithm_name].append(asdict(solution))
 
