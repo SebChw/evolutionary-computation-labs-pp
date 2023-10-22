@@ -32,8 +32,7 @@ def plot_solution(
     y_coords = [matrix[node][1] for node in nodes]
     costs = [matrix[node][2] for node in nodes]
 
-    normalized_costs = (costs - np.min(costs)) / \
-        (np.max(costs) - np.min(costs))
+    normalized_costs = (costs - np.min(costs)) / (np.max(costs) - np.min(costs))
 
     plt.scatter(
         x_coords, y_coords, s=1200, c=normalized_costs, cmap="coolwarm", alpha=0.6
@@ -48,11 +47,17 @@ def plot_solution(
     other_costs = [matrix[node][2] for node in other_nodes]
     other_x_coords = [matrix[node][0] for node in other_nodes]
     other_y_coords = [matrix[node][1] for node in other_nodes]
-    other_normalized_costs = (other_costs - np.min(other_costs)) / \
-        (np.max(other_costs) - np.min(other_costs))
+    other_normalized_costs = (other_costs - np.min(other_costs)) / (
+        np.max(other_costs) - np.min(other_costs)
+    )
 
     plt.scatter(
-        other_x_coords, other_y_coords, s=1200, c=other_normalized_costs, cmap="coolwarm", alpha=0.6
+        other_x_coords,
+        other_y_coords,
+        s=1200,
+        c=other_normalized_costs,
+        cmap="coolwarm",
+        alpha=0.6,
     )
 
     plt.title(
@@ -108,45 +113,41 @@ def get_extremes(solutions: dict):
 
 
 def create_table_data(best_solutions, worst_solutions, average_solutions):
-    headers = ["Problem"]
+    tables = {}
 
-    for algorithm_name in best_solutions[list(best_solutions.keys())[0]].keys():
-        headers.extend([
-            f"{algorithm_name} Best",
-            f"{algorithm_name} Worst",
-            f"{algorithm_name} Average"
-        ])
-
-    rows = []
+    algorithm_names = [x for x in best_solutions[list(best_solutions.keys())[0]].keys()]
 
     for problem_name in best_solutions.keys():
-        row = [problem_name]
-        for algorithm_name in best_solutions[problem_name].keys():
+        rows = [["best"], ["worst"], ["average"]]
+        for algorithm_name in algorithm_names:
             best_cost = best_solutions[problem_name][algorithm_name]["cost"]
             worst_cost = worst_solutions[problem_name][algorithm_name]["cost"]
             average_cost = average_solutions[problem_name][algorithm_name]["cost"]
-            row.extend([best_cost, worst_cost, average_cost])
-        rows.append(row)
+            rows[0].append(best_cost)
+            rows[1].append(worst_cost)
+            rows[2].append(average_cost)
 
-    return headers, rows
+        tables[problem_name] = rows
+
+    return [""] + algorithm_names, tables
 
 
 def save_results(best_solutions, worst_solutions, average_solutions):
     headers, data = create_table_data(
         best_solutions, worst_solutions, average_solutions
     )
-    plt.figure(figsize=(15, 5))
-    plt.axis("off")
-    plt.table(cellText=data, colLabels=headers, loc="center")
-    plt.savefig("visualizations/table.png")
+    for problem_name, table in data.items():
+        plt.figure(figsize=(15, 5))
+        plt.axis("off")
+        plt.table(cellText=table, colLabels=headers, loc="center")
+        plt.savefig(f"visualizations/{problem_name}_table.png")
 
 
 def main():
     with open("solutions.json", "r") as file:
         solutions = json.load(file)
 
-    best_solutions, worst_solutions, average_solutions = get_extremes(
-        solutions)
+    best_solutions, worst_solutions, average_solutions = get_extremes(solutions)
 
     data = get_data()
     for problem_name in data.keys():

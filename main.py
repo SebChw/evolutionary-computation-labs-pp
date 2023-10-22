@@ -16,8 +16,8 @@ ALGORITHMS = {
     "random": random_hamiltonian,
     "nn": nearest_neighbor_hamiltonian,
     "greedy": greedy_cycle,
-    "greedy_2_regret": Greedy2Regret(),
-    "greedy_2_regret_weighted": Greedy2Regret(alpha=0.5),
+    "2_regret": Greedy2Regret(),
+    "W_2_regret": Greedy2Regret(alpha=0.5),
 }
 
 
