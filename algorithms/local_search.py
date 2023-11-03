@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Any, List, Tuple
+from typing import List
 
 import numpy as np
 
@@ -60,9 +60,13 @@ class LocalSearch:
 
         # either greedy or steepest algorithm
         if self.greedy_:
-            return self.greedy()
+            self.greedy()
         else:
-            return self.steepest()
+            self.steepest()
+
+        print(
+            f"Final solution cost: {calculate_path_cost(self.solution, self.adj_matrix, self.nodes_cost)}"
+        )
 
     def generate_pairs_to_check(self, n_indices: int, m_indices: int):
         """Generates all solution indices pairs to check if our solution is [10,20,30] -> [(1,0), (2,0), (2,1)] Right element is greater
@@ -106,6 +110,11 @@ class LocalSearch:
                 + self.adj_matrix[node_j, neighbor_i_r]
             )
 
+            #! If nodes are neighbors. This is a special case!
+            if abs(i - j) == 1 or (i == 99 and j == 0):
+                curr_len -= self.adj_matrix[node_i, node_j]
+                len_after_change += self.adj_matrix[node_i, node_j]
+
             yield i, j, curr_len - len_after_change
 
     def two_nodes_exchange(self, i: int, j: int, nodes: List[int]) -> List[int]:
@@ -134,6 +143,7 @@ class LocalSearch:
             yield i, j, curr_len - len_after_change
 
     def two_edges_exchange(self, i: int, j: int, nodes: List[int]) -> List[int]:
+        #! We assume i > j
         # From the start to i (exlusive) it stays the same. Then I connect i with j. Next I need to go to the right neighor of i but in reversed order. Finally I add the rest of the nodes
         return nodes[: i + 1] + [nodes[j]] + nodes[j - 1 : i : -1] + nodes[j + 1 :]
 
@@ -167,6 +177,11 @@ class LocalSearch:
     def greedy(
         self,
     ):
+        #! Uncomment for debuggign
+        # old_cost = calculate_path_cost(self.solution, self.adj_matrix, self.nodes_cost)
+        # print(
+        #     f"Current solution cost: {calculate_path_cost(self.solution, self.adj_matrix, self.nodes_cost)}"
+        # )
         while True:
             # Assure order of checks is different every time, shuffle is done w.r.t first axis so pairs are not mixed
             np.random.shuffle(self.pairs_to_check_inter)
@@ -204,7 +219,18 @@ class LocalSearch:
             if best_move is None:
                 break
             else:
+                #! Uncomment this stuff for debugging
+                # old_solution = copy(self.solution)
                 self.update_solution(best_move)
+                # new_cost = calculate_path_cost(
+                #     self.solution, self.adj_matrix, self.nodes_cost
+                # )
+                # print(f"New solution cost: {new_cost}")
+                # print(f"Delta: {best_delta}")
+                # print(f"Improvement: {old_cost - new_cost}")
+                # if new_cost != old_cost - best_delta:
+                #     raise Exception("Costs are not equal")
+                # old_cost = new_cost
 
     def steepest(
         self,
