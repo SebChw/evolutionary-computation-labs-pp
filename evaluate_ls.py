@@ -1,37 +1,45 @@
+from data.data_parser import get_data
+from algorithms.random import random_hamiltonian
+from algorithms.local_search import LocalSearch
+from algorithms.greedy_2_regret import Greedy2Regret
+from algorithms.utils import Solution, calculate_path_cost
 from copy import copy
+from collections import defaultdict
+from dataclasses import asdict
+import json
+
+from joblib import Parallel, delayed
+
+from copy import deepcopy
 
 import numpy as np
 
 np.random.seed(42)
-from algorithms.local_search import LocalSearch
-from algorithms.random import random_hamiltonian
-from data.data_parser import get_data
+
 
 data = get_data()
+results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
 for problem, instance in data.items():
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
-    # TODO implement start from best solution found by greedy
-    initial_solution = random_hamiltonian(distance_matrix, nodes_cost, 0)
-    # Greedy, exchange nodes
-    LocalSearch(greedy=True, exchange_nodes=True)(
-        distance_matrix, nodes_cost, copy(initial_solution)
-    )
+    for i in range(200):
+        random_solution = random_hamiltonian(distance_matrix, nodes_cost)
+        greedy_solution = Greedy2Regret(alpha=0.5)(
+            distance_matrix, nodes_cost, starting_node=i)
+        solutions = [random_solution, greedy_solution]
 
-    # Greedy, exchange edges
-    LocalSearch(greedy=True, exchange_nodes=False)(
-        distance_matrix, nodes_cost, copy(initial_solution)
-    )
+        for greedy in [True, False]:
+            for exchange_nodes in [True, False]:
+                for starting_solution in solutions:
+                    result = LocalSearch(greedy=greedy, exchange_nodes=exchange_nodes)(
+                        distance_matrix, nodes_cost, copy(starting_solution)
+                    )
+                    results[problem][greedy][exchange_nodes].append(
+                        asdict(Solution(result, calculate_path_cost(
+                            result, distance_matrix, nodes_cost)))
+                    )
 
-    # Steepest, exchange nodes
-    LocalSearch(greedy=False, exchange_nodes=True)(
-        distance_matrix, nodes_cost, copy(initial_solution)
-    )
-
-    # Steepest, exchange edges
-    LocalSearch(greedy=False, exchange_nodes=False)(
-        distance_matrix, nodes_cost, copy(initial_solution)
-    )
-
-    break
+    with open("solutions.json", "w") as file:
+        json.dump(dict(solutions), file, indent=4)
+        print("Results have been saved to solutions.json")

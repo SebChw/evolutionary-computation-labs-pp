@@ -64,9 +64,10 @@ class LocalSearch:
         else:
             self.steepest()
 
-        print(
-            f"Final solution cost: {calculate_path_cost(self.solution, self.adj_matrix, self.nodes_cost)}"
-        )
+        # print(
+        #     f"Final solution cost: {calculate_path_cost(self.solution, self.adj_matrix, self.nodes_cost)}"
+        # )
+        return self.solution
 
     def generate_pairs_to_check(self, n_indices: int, m_indices: int):
         """Generates all solution indices pairs to check if our solution is [10,20,30] -> [(1,0), (2,0), (2,1)] Right element is greater
@@ -93,8 +94,10 @@ class LocalSearch:
         for i, j in self.pairs_to_check_intra:
             # Get actual nodes and their neighbors
             node_i, node_j = nodes[i], nodes[j]
-            neighbor_i_l, neighbor_i_r = nodes[i - 1], nodes[(i + 1) % n_indices]
-            neighbor_j_l, neighbor_j_r = nodes[j - 1], nodes[(j + 1) % n_indices]
+            neighbor_i_l, neighbor_i_r = nodes[i -
+                                               1], nodes[(i + 1) % n_indices]
+            neighbor_j_l, neighbor_j_r = nodes[j -
+                                               1], nodes[(j + 1) % n_indices]
 
             # This operation changes 4 edges, we don't need to consider nodes costs
             curr_len = (
@@ -145,7 +148,7 @@ class LocalSearch:
     def two_edges_exchange(self, i: int, j: int, nodes: List[int]) -> List[int]:
         #! We assume i > j
         # From the start to i (exlusive) it stays the same. Then I connect i with j. Next I need to go to the right neighor of i but in reversed order. Finally I add the rest of the nodes
-        return nodes[: i + 1] + [nodes[j]] + nodes[j - 1 : i : -1] + nodes[j + 1 :]
+        return nodes[: i + 1] + [nodes[j]] + nodes[j - 1: i: -1] + nodes[j + 1:]
 
     def inter_route_exchange_deltas(self, nodes: List[int]):
         # Find non selected nodes
@@ -154,7 +157,8 @@ class LocalSearch:
         # Evaluate all pairs
         for i, j in self.pairs_to_check_inter:
             node_i, node_j = nodes[i], not_selected[j]
-            neighbor_i_l, neighbor_i_r = nodes[i - 1], nodes[(i + 1) % len(nodes)]
+            neighbor_i_l, neighbor_i_r = nodes[i -
+                                               1], nodes[(i + 1) % len(nodes)]
 
             # Now we just compute distances between node_i and if we subtract it with node_j
             curr_len = (
@@ -188,7 +192,8 @@ class LocalSearch:
             np.random.shuffle(self.pairs_to_check_intra)
 
             # Initialize generators that will yield suggested exchanges
-            inter_route_deltas = self.inter_route_exchange_deltas(copy(self.solution))
+            inter_route_deltas = self.inter_route_exchange_deltas(
+                copy(self.solution))
             intra_route_deltas = self.intra_neigh_deltas(copy(self.solution))
 
             # Select when we will try to perform intra or inter route exchange
