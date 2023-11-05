@@ -1,20 +1,17 @@
-from data.data_parser import get_data
-from algorithms.random import random_hamiltonian
-from algorithms.local_search import LocalSearch
-from algorithms.greedy_2_regret import Greedy2Regret
-from algorithms.utils import Solution, calculate_path_cost
-from copy import copy
-from collections import defaultdict
-from dataclasses import asdict
 import json
-
-from joblib import Parallel, delayed
-
-from copy import deepcopy
+import time
+from collections import defaultdict
+from copy import copy, deepcopy
+from dataclasses import asdict
 
 import numpy as np
+from joblib import Parallel, delayed
 
-import time
+from algorithms.greedy_2_regret import Greedy2Regret
+from algorithms.local_search import LocalSearch
+from algorithms.random import random_hamiltonian
+from algorithms.utils import Solution, calculate_path_cost
+from data.data_parser import get_data
 
 
 def perform_local_search(greedy, exchange_nodes, starting_solution_name, starting_solution, distance_matrix, nodes_cost):
@@ -57,20 +54,20 @@ for problem, instance in data.items():
                         greedy, exchange_nodes, sol_name, sol,
                         distance_matrix, nodes_cost))
 
-        n_jobs = -1  # Use all available cores
-        parallel_results = Parallel(n_jobs=n_jobs)(tasks)
+    n_jobs = -1  # Use all available cores
+    parallel_results = Parallel(n_jobs=n_jobs)(tasks)
 
-        # Process the results
-        for result in parallel_results:
-            greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time = result
-            greedy_name = 'greedy' if greedy else 'steepest'
-            exchange_nodes_name = 'inter-route' if exchange_nodes else 'intra-route'
-            results[problem][greedy_name][exchange_nodes_name][starting_solution_name].append({
-                'solution': solution_dict,
-                'local_search_time': local_search_time,
-                'starting_solution_time': starting_solution_times[starting_solution_name],
-                'total_time': local_search_time + starting_solution_times[starting_solution_name]
-            })
+    # Process the results
+    for result in parallel_results:
+        greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time = result
+        greedy_name = 'greedy' if greedy else 'steepest'
+        exchange_nodes_name = 'nodes' if exchange_nodes else 'edges'
+        results[problem][greedy_name][exchange_nodes_name][starting_solution_name].append({
+            'solution': solution_dict,
+            'local_search_time': local_search_time,
+            'starting_solution_time': starting_solution_times[starting_solution_name],
+            'total_time': local_search_time + starting_solution_times[starting_solution_name]
+        })
 
 # Save the results to a JSON file
 with open("solutions.json", "w") as file:
