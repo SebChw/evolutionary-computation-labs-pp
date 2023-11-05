@@ -14,32 +14,65 @@ from copy import deepcopy
 
 import numpy as np
 
-np.random.seed(42)
+import time
+
+
+def perform_local_search(greedy, exchange_nodes, starting_solution_name, starting_solution, distance_matrix, nodes_cost):
+    local_search_start_time = time.perf_counter()
+    local_search = LocalSearch(greedy=greedy, exchange_nodes=exchange_nodes)
+    result = local_search(distance_matrix, nodes_cost,
+                          deepcopy(starting_solution))
+    solution_dict = asdict(
+        Solution(result, calculate_path_cost(result, distance_matrix, nodes_cost)))
+    local_search_time = time.perf_counter() - local_search_start_time
+    return greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time
 
 
 data = get_data()
-results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+results = defaultdict(lambda: defaultdict(
+    lambda: defaultdict(lambda: defaultdict(list))))
 
 for problem, instance in data.items():
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
+    tasks = []
     for i in range(200):
-        random_solution = random_hamiltonian(distance_matrix, nodes_cost)
-        greedy_solution = Greedy2Regret(alpha=0.5)(
+        starting_solutions = {}
+        starting_solution_times = {}
+        start_time_random = time.perf_counter()
+        starting_solutions['random'] = random_hamiltonian(
+            distance_matrix, nodes_cost)
+        starting_solution_times['random'] = time.perf_counter(
+        ) - start_time_random
+        start_time_greedy = time.perf_counter()
+        starting_solutions['greedy'] = Greedy2Regret(alpha=0.5)(
             distance_matrix, nodes_cost, starting_node=i)
-        solutions = [random_solution, greedy_solution]
+        starting_solution_times['greedy'] = time.perf_counter(
+        ) - start_time_greedy
 
         for greedy in [True, False]:
             for exchange_nodes in [True, False]:
-                for starting_solution in solutions:
-                    result = LocalSearch(greedy=greedy, exchange_nodes=exchange_nodes)(
-                        distance_matrix, nodes_cost, copy(starting_solution)
-                    )
-                    results[problem][greedy][exchange_nodes].append(
-                        asdict(Solution(result, calculate_path_cost(
-                            result, distance_matrix, nodes_cost)))
-                    )
+                for sol_name, sol in starting_solutions.items():
+                    tasks.append(delayed(perform_local_search)(
+                        greedy, exchange_nodes, sol_name, sol,
+                        distance_matrix, nodes_cost))
 
-    with open("solutions.json", "w") as file:
-        json.dump(dict(solutions), file, indent=4)
-        print("Results have been saved to solutions.json")
+        n_jobs = -1  # Use all available cores
+        parallel_results = Parallel(n_jobs=n_jobs)(tasks)
+
+        # Process the results
+        for result in parallel_results:
+            greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time = result
+            greedy_name = 'greedy' if greedy else 'steepest'
+            exchange_nodes_name = 'inter-route' if exchange_nodes else 'intra-route'
+            results[problem][greedy_name][exchange_nodes_name][starting_solution_name].append({
+                'solution': solution_dict,
+                'local_search_time': local_search_time,
+                'starting_solution_time': starting_solution_times[starting_solution_name],
+                'total_time': local_search_time + starting_solution_times[starting_solution_name]
+            })
+
+# Save the results to a JSON file
+with open("solutions.json", "w") as file:
+    json.dump(dict(results), file, indent=4)
+print("Results have been saved to solutions.json")
