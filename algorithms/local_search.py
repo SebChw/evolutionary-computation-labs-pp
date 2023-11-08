@@ -11,7 +11,8 @@ INTRA = "intra"
 
 # IMPORTANT: HERE I ASSUME i,j to be indices of nodes in the solution and not the nodes themselves, node_i,node_j are the nodes themselves, and neighbor_* is also node not an index
 class LocalSearch:
-    def __init__(self, greedy: bool = True, exchange_nodes: bool = True):
+    def __init__(self, greedy: bool = True, exchange_nodes: bool = True,
+                 candidate_moves: bool = False):
         """Performs local search algorithm
 
         Args:
@@ -20,6 +21,7 @@ class LocalSearch:
         """
         self.greedy_ = greedy
         self.exchange_nodes = exchange_nodes
+        self.candidate_moves = candidate_moves
 
     def __call__(
         self,
@@ -240,21 +242,57 @@ class LocalSearch:
     def steepest(
         self,
     ):
+        if self.candidate_moves:
+            self.construct_candidate_list()
         while True:
             best_delta = 0
             best_move = None
-            # At first check all intra exchanges
-            for i, node_j, delta in self.inter_route_exchange_deltas(
-                copy(self.solution)
-            ):
-                if delta > best_delta:
-                    best_delta = delta
-                    best_move = i, node_j, INTER
-            # Then all inter
-            for i, j, delta in self.intra_neigh_deltas(copy(self.solution)):
-                if delta > best_delta:
-                    best_delta = delta
-                    best_move = i, j, INTRA
+
+            if self.candidate_moves:
+                # Check all inter-route exchanges with candidate moves
+                not_selected = list(
+                    set(range(len(self.adj_matrix))) - set(self.solution))
+
+                for i, node_i in enumerate(self.solution):
+                    # Only consider the candidate nodes which are not in the current solution
+                    candidate_nodes = [
+                        node for node in self.candidate_list[node_i] if node in not_selected]
+                    for node_j in candidate_nodes:
+                        j_index = not_selected.index(node_j)
+                        # Find the delta for the current node_i and node_j pair
+                        delta = next(
+                            (d for x, y, d in self.inter_route_exchange_deltas(copy(self.solution)) if x == i and y == j_index), None)
+                        if delta and delta > best_delta:
+                            best_delta = delta
+                            best_move = (i, j_index, INTER)
+
+                # Check all intra-route exchanges with candidate moves
+                for i, j in self.pairs_to_check_intra:
+                    node_i = self.solution[i]
+                    node_j = self.solution[j]
+                    # Only consider exchanges where at least one node is a candidate of the other
+                    if node_j in self.candidate_list[node_i] or node_i in self.candidate_list[node_j]:
+                        intra_deltas = list(
+                            self.intra_neigh_deltas(copy(self.solution)))
+                        # Find the delta for the current i, j pair
+                        delta = next(
+                            (d for x, y, d in intra_deltas if x == i and y == j), None)
+                        if delta and delta > best_delta:  # Check if the delta is better
+                            best_delta = delta
+                            best_move = (i, j, INTRA)
+            else:
+                # At first check all intra exchanges
+                for i, node_j, delta in self.inter_route_exchange_deltas(
+                    copy(self.solution)
+                ):
+                    if delta > best_delta:
+                        best_delta = delta
+                        best_move = i, node_j, INTER
+                # Then all inter
+                for i, j, delta in self.intra_neigh_deltas(copy(self.solution)):
+                    if delta > best_delta:
+                        best_delta = delta
+                        best_move = i, j, INTRA
 
             # Update best solution if possible
             if best_move is None:
@@ -270,3 +308,10 @@ class LocalSearch:
         else:
             i, j = best_move[:2]
             self.solution = self.intra_neigh_exchange(i, j, self.solution)
+
+    def construct_candidate_list(self):
+        self.candidate_list = {}
+        for i in range(len(self.adj_matrix)):
+            costs = self.adj_matrix[i] + self.nodes_cost
+            self.candidate_list[i] = [
+                idx for idx in np.argsort(costs) if idx != i][:10]

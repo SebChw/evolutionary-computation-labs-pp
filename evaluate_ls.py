@@ -16,7 +16,8 @@ from data.data_parser import get_data
 
 def perform_local_search(greedy, exchange_nodes, starting_solution_name, starting_solution, distance_matrix, nodes_cost):
     local_search_start_time = time.perf_counter()
-    local_search = LocalSearch(greedy=greedy, exchange_nodes=exchange_nodes)
+    local_search = LocalSearch(
+        greedy=greedy, exchange_nodes=exchange_nodes, candidate_moves=True)
     result = local_search(distance_matrix, nodes_cost,
                           deepcopy(starting_solution))
     solution_dict = asdict(
@@ -33,7 +34,7 @@ for problem, instance in data.items():
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
     tasks = []
-    for i in range(200):
+    for i in range(1):
         starting_solutions = {}
         starting_solution_times = {}
         start_time_random = time.perf_counter()
@@ -41,22 +42,23 @@ for problem, instance in data.items():
             distance_matrix, nodes_cost)
         starting_solution_times['random'] = time.perf_counter(
         ) - start_time_random
-        start_time_greedy = time.perf_counter()
-        starting_solutions['greedy'] = Greedy2Regret(alpha=0.5)(
-            distance_matrix, nodes_cost, starting_node=i)
-        starting_solution_times['greedy'] = time.perf_counter(
-        ) - start_time_greedy
+        # start_time_greedy = time.perf_counter()
+        # starting_solutions['greedy'] = Greedy2Regret(alpha=0.5)(
+        #     distance_matrix, nodes_cost, starting_node=i)
+        # starting_solution_times['greedy'] = time.perf_counter(
+        # ) - start_time_greedy
 
-        for greedy in [True, False]:
-            for exchange_nodes in [True, False]:
-                for sol_name, sol in starting_solutions.items():
-                    tasks.append(delayed(perform_local_search)(
-                        greedy, exchange_nodes, sol_name, sol,
-                        distance_matrix, nodes_cost))
+    #     for greedy in [False]:
+    #         for exchange_nodes in [False]:
+    #             for sol_name, sol in starting_solutions.items():
+    #                 tasks.append(delayed(perform_local_search)(
+    #                     greedy, exchange_nodes, sol_name, sol,
+    #                     distance_matrix, nodes_cost))
+    # n_jobs = -1  # Use all available cores
+    # parallel_results = Parallel(n_jobs=n_jobs)(tasks)
 
-    n_jobs = -1  # Use all available cores
-    parallel_results = Parallel(n_jobs=n_jobs)(tasks)
-
+    parallel_results = perform_local_search(
+        False, False, 'random', starting_solutions['random'], distance_matrix, nodes_cost)
     # Process the results
     for result in parallel_results:
         greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time = result
