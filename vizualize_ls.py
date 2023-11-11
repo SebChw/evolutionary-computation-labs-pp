@@ -58,7 +58,7 @@ with open('solutions.json', 'r') as f:
 
 cost_results, nodes = get_result(data)
 # time_results = get_time_results(data)
-
+print(nodes['TSPA']['steepest']['edges']['random'])
 
 for problem, problem_results in nodes.items():
     matrix = get_data()[problem]['original_data']

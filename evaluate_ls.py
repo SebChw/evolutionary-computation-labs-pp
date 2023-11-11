@@ -34,7 +34,8 @@ for problem, instance in data.items():
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
     tasks = []
-    for i in range(1):
+    for i in range(200):
+        print(i)
         starting_solutions = {}
         starting_solution_times = {}
         start_time_random = time.perf_counter()
@@ -57,19 +58,22 @@ for problem, instance in data.items():
     # n_jobs = -1  # Use all available cores
     # parallel_results = Parallel(n_jobs=n_jobs)(tasks)
 
-    parallel_results = perform_local_search(
-        False, False, 'random', starting_solutions['random'], distance_matrix, nodes_cost)
-    # Process the results
-    for result in parallel_results:
-        greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time = result
+        parallel_results = perform_local_search(
+            False, False, 'random', starting_solutions['random'], distance_matrix, nodes_cost)
+        # Process the results
+        # for result in parallel_results:
+        greedy, exchange_nodes, starting_solution_name, solution_dict, local_search_time = parallel_results
         greedy_name = 'greedy' if greedy else 'steepest'
         exchange_nodes_name = 'nodes' if exchange_nodes else 'edges'
+        for x in range(len(solution_dict['nodes'])):
+            solution_dict['nodes'][x] = int(solution_dict['nodes'][x])
         results[problem][greedy_name][exchange_nodes_name][starting_solution_name].append({
             'solution': solution_dict,
             'local_search_time': local_search_time,
             'starting_solution_time': starting_solution_times[starting_solution_name],
             'total_time': local_search_time + starting_solution_times[starting_solution_name]
         })
+    break
 
 # Save the results to a JSON file
 with open("solutions.json", "w") as file:

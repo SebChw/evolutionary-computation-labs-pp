@@ -127,6 +127,17 @@ class LocalSearch:
         nodes[i], nodes[j] = nodes[j], nodes[i]
         return nodes
 
+    def compute_distances_intra(self, node_i, node_j, neighbor_i_r, neighbor_j_r):
+        curr_len = (
+            self.adj_matrix[node_i, neighbor_i_r]
+            + self.adj_matrix[node_j, neighbor_j_r]
+        )
+        len_after_change = (
+            self.adj_matrix[node_i, node_j]
+            + self.adj_matrix[neighbor_i_r, neighbor_j_r]
+        )
+        return curr_len, len_after_change
+
     def two_edges_exchange_deltas(self, nodes: List[int]):
         """Calculates deltas for every possible two edges exchange"""
 
@@ -136,14 +147,8 @@ class LocalSearch:
             node_i, node_j = nodes[i], nodes[j]
             neighbor_i_r = nodes[(i + 1) % n_indices]
             neighbor_j_r = nodes[(j + 1) % n_indices]
-            curr_len = (
-                self.adj_matrix[node_i, neighbor_i_r]
-                + self.adj_matrix[node_j, neighbor_j_r]
-            )
-            len_after_change = (
-                self.adj_matrix[node_i, node_j]
-                + self.adj_matrix[neighbor_i_r, neighbor_j_r]
-            )
+            curr_len, len_after_change = self.compute_distances_intra(
+                node_i, node_j, neighbor_i_r, neighbor_j_r)
 
             yield i, j, curr_len - len_after_change
 
@@ -151,6 +156,20 @@ class LocalSearch:
         #! We assume i > j
         # From the start to i (exlusive) it stays the same. Then I connect i with j. Next I need to go to the right neighor of i but in reversed order. Finally I add the rest of the nodes
         return nodes[: i + 1] + [nodes[j]] + nodes[j - 1: i: -1] + nodes[j + 1:]
+
+    def compute_distances_inter(self, node_i, node_j, neighbor_i_l, neighbor_i_r):
+        curr_len = (
+            self.adj_matrix[node_i, neighbor_i_l]
+            + self.adj_matrix[node_i, neighbor_i_r]
+            + self.nodes_cost[node_i]
+        )
+        len_after_change = (
+            self.adj_matrix[node_j, neighbor_i_l]
+            + self.adj_matrix[node_j, neighbor_i_r]
+            + self.nodes_cost[node_j]
+        )
+
+        return curr_len, len_after_change
 
     def inter_route_exchange_deltas(self, nodes: List[int]):
         # Find non selected nodes
@@ -163,16 +182,8 @@ class LocalSearch:
                                                1], nodes[(i + 1) % len(nodes)]
 
             # Now we just compute distances between node_i and if we subtract it with node_j
-            curr_len = (
-                self.adj_matrix[node_i, neighbor_i_l]
-                + self.adj_matrix[node_i, neighbor_i_r]
-                + self.nodes_cost[node_i]
-            )
-            len_after_change = (
-                self.adj_matrix[node_j, neighbor_i_l]
-                + self.adj_matrix[node_j, neighbor_i_r]
-                + self.nodes_cost[node_j]
-            )
+            curr_len, len_after_change = self.compute_distances_inter(
+                node_i, node_j, neighbor_i_l, neighbor_i_r)
 
             yield i, node_j, curr_len - len_after_change
 
@@ -254,32 +265,55 @@ class LocalSearch:
                     set(range(len(self.adj_matrix))) - set(self.solution))
 
                 for i, node_i in enumerate(self.solution):
-                    # Only consider the candidate nodes which are not in the current solution
                     candidate_nodes = [
                         node for node in self.candidate_list[node_i] if node in not_selected]
                     for node_j in candidate_nodes:
-                        j_index = not_selected.index(node_j)
-                        # Find the delta for the current node_i and node_j pair
-                        delta = next(
-                            (d for x, y, d in self.inter_route_exchange_deltas(copy(self.solution)) if x == i and y == j_index), None)
-                        if delta and delta > best_delta:
-                            best_delta = delta
-                            best_move = (i, j_index, INTER)
+                        neighbor_i_l, neighbor_i_r = self.solution[i - 1], self.solution[(
+                            i + 1) % len(self.solution)]
+                        neighbor_l_l, neighbor_r_r = self.solution[i - 2], self.solution[(
+                            i + 2) % len(self.solution)]
 
-                # Check all intra-route exchanges with candidate moves
-                for i, j in self.pairs_to_check_intra:
-                    node_i = self.solution[i]
-                    node_j = self.solution[j]
-                    # Only consider exchanges where at least one node is a candidate of the other
-                    if node_j in self.candidate_list[node_i] or node_i in self.candidate_list[node_j]:
-                        intra_deltas = list(
-                            self.intra_neigh_deltas(copy(self.solution)))
-                        # Find the delta for the current i, j pair
-                        delta = next(
-                            (d for x, y, d in intra_deltas if x == i and y == j), None)
-                        if delta and delta > best_delta:  # Check if the delta is better
-                            best_delta = delta
-                            best_move = (i, j, INTRA)
+                        curr_len_l, len_after_replace_l = self.compute_distances_inter(
+                            neighbor_i_l, node_j, neighbor_l_l, node_i
+                        )
+
+                        curr_len_r, len_after_replace_r = self.compute_distances_inter(
+                            neighbor_i_r, node_j, node_i, neighbor_r_r
+                        )
+
+                        delta_l = curr_len_l - len_after_replace_l
+                        delta_r = curr_len_r - len_after_replace_r
+
+                        if delta_l > delta_r and delta_l > best_delta:
+                            best_delta = delta_l
+                            best_move = (i-1, node_j, INTER)
+                        if delta_r > delta_l and delta_r > best_delta:
+                            best_delta = delta_r
+                            best_move = ((
+                                i + 1) % len(self.solution), node_j, INTER)
+
+                # for i, node_i in enumerate(self.solution):
+                #     candidate_nodes = [
+                #         (idx, node) for idx, node in enumerate(self.solution) if node in self.candidate_list[node_i]
+                #         and idx != i]
+                #     for j, node_j in candidate_nodes:
+                #         neighbor_i_r = self.solution[(
+                #             i + 1) % len(self.solution)]
+                #         neighbor_j_r = self.solution[(
+                #             j + 1) % len(self.solution)]
+
+                #         curr_len, len_after_replace = self.compute_distances_intra(
+                #             node_i, node_j, neighbor_i_r, neighbor_j_r
+                #         )
+
+                #         delta = curr_len - len_after_replace
+
+                #         if delta > best_delta:
+                #             best_delta = delta
+                #             best_move = i, j, INTRA
+                #             print(
+                #                 f'len={curr_len}, lenafter={len_after_replace}, delta={delta}, ij={i,j}')
+
             else:
                 # At first check all intra exchanges
                 for i, node_j, delta in self.inter_route_exchange_deltas(
@@ -313,5 +347,5 @@ class LocalSearch:
         self.candidate_list = {}
         for i in range(len(self.adj_matrix)):
             costs = self.adj_matrix[i] + self.nodes_cost
-            self.candidate_list[i] = [
-                idx for idx in np.argsort(costs) if idx != i][:10]
+            sorted_indices = np.argsort(costs)
+            self.candidate_list[i] = sorted_indices[1:11]
