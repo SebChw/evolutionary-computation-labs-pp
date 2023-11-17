@@ -16,10 +16,11 @@ def get_result(data: dict, key: str = 'cost'):
     for problem, problem_results in data.items():
         for ls_type, ls_results in problem_results.items():
             for exchange_type, exchange_results in ls_results.items():
-                for starting_solution, starting_solution_results in exchange_results.items():
+                for start_solution, starting_solution_results in exchange_results.items():
                     for result in starting_solution_results:
                         cost = result['solution'][key]
                         nodes = result['solution']['nodes']
+                        starting_solution = start_solution + "_cm" if result['candidate_moves'] else start_solution
                         if results['best'][problem][ls_type][exchange_type][starting_solution] == 0:
                             results['best'][problem][ls_type][exchange_type][starting_solution] = cost
                             results['worst'][problem][ls_type][exchange_type][starting_solution] = cost
@@ -41,8 +42,9 @@ def get_time_results(data):
     for problem, problem_results in data.items():
         for ls_type, ls_results in problem_results.items():
             for exchange_type, exchange_results in ls_results.items():
-                for starting_solution, starting_solution_results in exchange_results.items():
+                for start_solution, starting_solution_results in exchange_results.items():
                     for result in starting_solution_results:
+                        starting_solution = start_solution + "_cm" if result['candidate_moves'] else start_solution
                         cost = result['total_time']
                         results['best'][problem][ls_type][exchange_type][starting_solution] = min(
                             cost, results['best'][problem][ls_type][exchange_type].get(starting_solution, float('inf')))
@@ -57,8 +59,8 @@ with open('solutions.json', 'r') as f:
 
 
 cost_results, nodes = get_result(data)
-# time_results = get_time_results(data)
-print(nodes['TSPA']['steepest']['edges']['random'])
+time_results = get_time_results(data)
+#print(nodes['TSPA']['steepest']['edges']['random'])
 
 for problem, problem_results in nodes.items():
     matrix = get_data()[problem]['original_data']
@@ -68,5 +70,5 @@ for problem, problem_results in nodes.items():
                 plot_solution(matrix, (nodes, cost_results['best'][problem][ls_type][exchange_type][starting_solution]), problem,
                               f'{ls_type}_{exchange_type}_{starting_solution}')
 
-# print(json.dumps(cost_results, indent=4))
-# print(json.dumps(time_results, indent=4))
+print(json.dumps(cost_results, indent=4))
+print(json.dumps(time_results, indent=4))
