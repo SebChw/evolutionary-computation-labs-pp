@@ -652,20 +652,21 @@ class LocalSearch:
 
             if self.strategy == LSStrategy.STEEPEST_MOVE_EVAL:
                 # After updating solution our nodes may completely change their positions
-                self.update_node_to_position()
 
-                # We need to add new moves to our queue
-                self.add_new_to_priorietized_moves(
-                    best_move["move"], best_move["removed"]
-                )
                 #! Rarely deltas were inconsistent and I couldn't find the reason
                 # new_cost = calculate_path_cost(
                 #     self.solution, self.adj_matrix, self.nodes_cost
                 # )
                 # if new_cost != old_cost + best_delta:
                 #     self.solution = old_solution
-                #     print("ROLLBACK")
-                # self.update_node_to_position()
+                #     print("ROOLLBACK")
+                # else:
+                self.update_node_to_position()
+
+                # We need to add new moves to our queue
+                self.add_new_to_priorietized_moves(
+                    best_move["move"], best_move["removed"]
+                )
                 # old_cost = new_cost
 
                 # Check if our solution is valid
