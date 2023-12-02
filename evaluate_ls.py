@@ -7,8 +7,9 @@ from dataclasses import asdict
 import numpy as np
 from joblib import Parallel, delayed
 
-from algorithms.greedy_2_regret import Greedy2Regret
-from algorithms.local_search import LocalSearch, LSStrategy
+from algorithms.ils import ILS
+from algorithms.local_search import LocalSearch
+from algorithms.msls import MSLS
 from algorithms.random import random_hamiltonian
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
@@ -27,11 +28,9 @@ def perform_local_search(
     local_search = LocalSearch(
         greedy=greedy, exchange_nodes=exchange_nodes, candidate_moves=candidate_moves
     )
-    result = local_search(distance_matrix, nodes_cost,
-                          deepcopy(starting_solution))
+    result = local_search(distance_matrix, nodes_cost, deepcopy(starting_solution))
     solution_dict = asdict(
-        Solution(result, calculate_path_cost(
-            result, distance_matrix, nodes_cost))
+        Solution(result, calculate_path_cost(result, distance_matrix, nodes_cost))
     )
     local_search_time = time.perf_counter() - local_search_start_time
     return (
@@ -47,84 +46,47 @@ def perform_local_search(
 data = get_data()
 results = defaultdict(list)
 
-for problem, instance in data.items():
-    print(problem)
+
+def evaluate_msls(problem: str, instance: dict):
+    N_ITERATIONS = 5
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
-    # tasks = []
 
-    for i in range(200):
-        print(i)
-        starting_solutions = {}
-        starting_solution_times = {}
-        start_time_random = time.perf_counter()
-        starting_solutions["random"] = random_hamiltonian(
-            distance_matrix, nodes_cost)
-        starting_solution_times["random"] = time.perf_counter(
-        ) - start_time_random
-
-        # start_time_greedy = time.perf_counter()
-        # starting_solutions["greedy"] = Greedy2Regret(alpha=0.5)(
-        #     distance_matrix, nodes_cost, starting_node=i
-        # )
-        # starting_solution_times["greedy"] = time.perf_counter(
-        # ) - start_time_greedy
-
-        local_search = LocalSearch(
-            LSStrategy.STEEPEST_MOVE_EVAL, exchange_nodes=False)
-        start_time_ls = time.perf_counter()
-        result = local_search(
-            distance_matrix, nodes_cost, deepcopy(starting_solutions["random"])
-        )
-        stop_time_ls = time.perf_counter() - start_time_ls
-        solution_dict = asdict(
-            Solution(result, calculate_path_cost(
-                result, distance_matrix, nodes_cost))
-        )
+    for _ in range(N_ITERATIONS):
+        msls = MSLS()
+        result = msls(distance_matrix, nodes_cost)
+        solution_dict = asdict(Solution(result["solution"], result["cost"]))
         results[problem].append(
             {
+                "method": "msls",
                 "solution": solution_dict,
-                "local_search_time": stop_time_ls,
+                "time": result["time"],
             }
         )
-        # print("LS pure steepest")
-        # local_search = LocalSearch(LSStrategy.STEEPEST, exchange_nodes=False)
-        # result = local_search(
-        #     distance_matrix, nodes_cost, deepcopy(starting_solutions["random"])
-        # )
-        # raise Exception("Finito.")
 
-    # n_jobs = -1  # Use all available cores
-    # parallel_results = Parallel(n_jobs=n_jobs)(tasks)
-    # print(parallel_results)
-    # # Process the results
-    # for result in parallel_results:
-    #     (
-    #         greedy,
-    #         exchange_nodes,
-    #         starting_solution_name,
-    #         solution_dict,
-    #         local_search_time,
-    #         candidate_moves,
-    #     ) = result
-    #     greedy_name = "greedy" if greedy else "steepest"
-    #     exchange_nodes_name = "nodes" if exchange_nodes else "edges"
-    #     for x in range(len(solution_dict["nodes"])):
-    #         solution_dict["nodes"][x] = int(solution_dict["nodes"][x])
-    #     results[problem][greedy_name][exchange_nodes_name][
-    #         starting_solution_name
-    #     ].append(
-    #         {
-    #             "solution": solution_dict,
-    #             "local_search_time": local_search_time,
-    #             "starting_solution_time": starting_solution_times[
-    #                 starting_solution_name
-    #             ],
-    #             "total_time": local_search_time
-    #             + starting_solution_times[starting_solution_name],
-    #             "candidate_moves": candidate_moves,
-    #         }
-    #     )
+
+def evaluate_ils(problem: str, instance: dict):
+    N_ITERATIONS = 20
+    distance_matrix = instance["dist_matrix"]
+    nodes_cost = instance["nodes_cost"]
+
+    for _ in range(N_ITERATIONS):
+        ils = ILS()
+        result = ils(distance_matrix, nodes_cost)
+        solution_dict = asdict(Solution(result["solution"], result["cost"]))
+        results[problem].append(
+            {
+                "method": "ils",
+                "solution": solution_dict,
+                "time": result["time"],
+            }
+        )
+
+
+for problem, instance in data.items():
+    print(f"Problem: {problem}")
+    evaluate_msls(problem, instance)
+    # evaluate_ils(problem, instance)
 
 
 # Save the results to a JSON file
