@@ -28,6 +28,7 @@ def plot_solution(
     # nodes = solution["nodes"]
     # nodes += [nodes[0]]
     nodes = best_solutions[0]
+    nodes += [nodes[0]]
 
     x_coords = [matrix[node][0] for node in nodes]
     y_coords = [matrix[node][1] for node in nodes]
