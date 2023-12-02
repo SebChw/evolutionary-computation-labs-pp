@@ -70,26 +70,36 @@ def evaluate_ils(problem: str, instance: dict):
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
+    tasks = [] 
     for _ in range(N_ITERATIONS):
         ils = ILS()
-        result = ils(distance_matrix, nodes_cost)
+        #TODO: after setting optimal parameters remove this!
+        ils(distance_matrix, nodes_cost)
+
+        tasks.append(delayed(ils)(distance_matrix, nodes_cost))
+
+    n_jobs = len(tasks)
+    parallel_results = Parallel(n_jobs=n_jobs)(tasks)
+
+    for result in parallel_results:
         solution_dict = asdict(Solution(result["solution"], result["cost"]))
         results[problem].append(
             {
                 "method": "ils",
                 "solution": solution_dict,
-                "time": result["time"],
+                "n_iterations": result["n_iterations"],
+                "best_found_at": result["best_found_at"],
             }
         )
 
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
-    evaluate_msls(problem, instance)
-    # evaluate_ils(problem, instance)
+    #evaluate_msls(problem, instance)
+    evaluate_ils(problem, instance)
 
 
 # Save the results to a JSON file
-with open("solutions.json", "w") as file:
+with open("solutions2.json", "w") as file:
     json.dump(dict(results), file, indent=4)
 print("Results have been saved to solutions.json")
