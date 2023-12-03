@@ -79,7 +79,7 @@ def evaluate_ils(problem: str, instance: dict):
         tasks.append(delayed(ils)(distance_matrix, nodes_cost))
 
     n_jobs = len(tasks)
-    parallel_results = Parallel(n_jobs=-1)(tasks)
+    parallel_results = Parallel(n_jobs=n_jobs)(tasks)
 
     for result in parallel_results:
         solution_dict = asdict(Solution(result["solution"], result["cost"]))

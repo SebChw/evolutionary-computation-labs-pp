@@ -8,6 +8,8 @@ from algorithms.local_search import LocalSearch, LSStrategy
 from algorithms.random import random_hamiltonian
 from algorithms.utils import calculate_path_cost
 
+from copy import deepcopy
+
 
 class ILS:
     def __init__(self):
@@ -107,8 +109,8 @@ class ILS:
 
             if new_solution["cost"] < best_cost:
                 # print("improvement")
-                best_cost = new_solution["cost"]
-                best_solution = new_solution["solution"]
+                best_cost = deepcopy(new_solution["cost"])
+                best_solution = deepcopy(new_solution["solution"])
                 i_for_best_solution = self.iterations
 
         return {
