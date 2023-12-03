@@ -81,6 +81,7 @@ class ILS:
         return solution
 
     def __call__(self, adj_matrix: np.ndarray, nodes_cost: np.ndarray) -> Dict:
+        print("call")
         self.adj_matrix = adj_matrix
         self.nodes_cost = nodes_cost
 
@@ -103,7 +104,6 @@ class ILS:
             # if new_solution["cost"] == old_cost:
                 # print("Returned to the previous solution!")
             old_cost = new_solution["cost"]
-            print(old_cost)
 
             if new_solution["cost"] < best_cost:
                 # print("improvement")

@@ -74,12 +74,12 @@ def evaluate_ils(problem: str, instance: dict):
     for _ in range(N_ITERATIONS):
         ils = ILS()
         #TODO: after setting optimal parameters remove this!
-        ils(distance_matrix, nodes_cost)
+        # ils(distance_matrix, nodes_cost)
 
         tasks.append(delayed(ils)(distance_matrix, nodes_cost))
 
     n_jobs = len(tasks)
-    parallel_results = Parallel(n_jobs=n_jobs)(tasks)
+    parallel_results = Parallel(n_jobs=-1)(tasks)
 
     for result in parallel_results:
         solution_dict = asdict(Solution(result["solution"], result["cost"]))
