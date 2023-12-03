@@ -48,7 +48,7 @@ results = defaultdict(list)
 
 
 def evaluate_msls(problem: str, instance: dict):
-    N_ITERATIONS = 5
+    N_ITERATIONS = 19
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
@@ -95,11 +95,11 @@ def evaluate_ils(problem: str, instance: dict):
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
-    #evaluate_msls(problem, instance)
+    # evaluate_msls(problem, instance)
     evaluate_ils(problem, instance)
 
 
 # Save the results to a JSON file
-with open("solutions2.json", "w") as file:
+with open("solutionsILS_basic.json", "w") as file:
     json.dump(dict(results), file, indent=4)
-print("Results have been saved to solutions.json")
+print("Results have been saved to solutions20.json")
