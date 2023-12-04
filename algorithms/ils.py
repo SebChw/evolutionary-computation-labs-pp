@@ -111,6 +111,7 @@ class ILS:
                 # print("improvement")
                 best_cost = deepcopy(new_solution["cost"])
                 best_solution = deepcopy(new_solution["solution"])
+                print(best_solution, best_cost, calculate_path_cost(best_solution, self.adj_matrix, self.nodes_cost))
                 i_for_best_solution = self.iterations
 
         return {
