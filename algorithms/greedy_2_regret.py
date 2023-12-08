@@ -31,7 +31,7 @@ class Greedy2Regret:
 
             cycle = [starting_node, cheapest_node, starting_node]
         else:
-            cycle = starting_solution + starting_solution[0]
+            cycle = starting_solution + [starting_solution[0]]
         in_cycle = set(cycle)
 
         while len(in_cycle) < num_nodes // 2:

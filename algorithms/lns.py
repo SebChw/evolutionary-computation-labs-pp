@@ -12,7 +12,7 @@ from algorithms.utils import calculate_path_cost
 
 
 class LNS:
-    def __init__(self, destroy_rate=0.2, do_LS=False, max_time: int = 7):
+    def __init__(self, destroy_rate=0.2, do_LS=False, max_time: int = 7 * 200):
         """
         Initialize the LNS algorithm parameters.
         """
@@ -56,7 +56,8 @@ class LNS:
         new_solution = deepcopy(initial_solution)
         new_cost = calculate_path_cost(new_solution, self.adj_matrix, self.nodes_cost)
         n_iterations = 0
-        while start_time < self.max_time:
+        total_time = 0
+        while total_time < self.max_time:
             partial_solution = self.destroy(new_solution)
             new_solution = self.repair(
                 partial_solution, self.adj_matrix, self.nodes_cost
@@ -76,6 +77,7 @@ class LNS:
                     new_solution = solution_LS
                     new_cost = solution_LS_cost
             n_iterations += 1
+            total_time = time.perf_counter() - start_time
 
         return {
             "solution": new_solution,

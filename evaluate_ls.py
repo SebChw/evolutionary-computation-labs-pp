@@ -7,9 +7,9 @@ from dataclasses import asdict
 from joblib import Parallel, delayed
 
 from algorithms.ils import ILS
+from algorithms.lns import LNS
 from algorithms.local_search import LocalSearch
 from algorithms.msls import MSLS
-from algorithms.lns import LNS
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
 
@@ -69,10 +69,10 @@ def evaluate_ils(problem: str, instance: dict):
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
-    tasks = [] 
+    tasks = []
     for _ in range(N_ITERATIONS):
         ils = ILS()
-        #TODO: after setting optimal parameters remove this!
+        # TODO: after setting optimal parameters remove this!
         # ils(distance_matrix, nodes_cost)
 
         tasks.append(delayed(ils)(distance_matrix, nodes_cost))
@@ -91,12 +91,13 @@ def evaluate_ils(problem: str, instance: dict):
             }
         )
 
+
 def evaluate_lns(problem: str, instance: dict):
     N_ITERATIONS = 20
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
-    tasks = [] 
+    tasks = []
     for _ in range(N_ITERATIONS):
         ils = LNS()
         tasks.append(delayed(ils)(distance_matrix, nodes_cost))
@@ -113,6 +114,7 @@ def evaluate_lns(problem: str, instance: dict):
                 "n_iterations": result["n_iterations"],
             }
         )
+
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
