@@ -22,14 +22,19 @@ class LNS:
         self.max_time = max_time
         self.exchange_nodes = False
 
-    def destroy(self, solution):
+    def destroy(self, solution, nodes_cost):
         """
         Destroy operator: removes a fraction of nodes/edges from the solution.
         """
         num_elements_to_remove = int(len(solution) * self.destroy_rate)
+        weights = nodes_cost[solution]
+        weights = weights / np.sum(weights)
         indices_to_remove = set(
-            random.sample(range(len(solution)), num_elements_to_remove)
+            np.random.choice(
+                range(len(solution)), num_elements_to_remove, replace=False, p=weights
+            )
         )
+
         return [
             element for i, element in enumerate(solution) if i not in indices_to_remove
         ]
@@ -58,7 +63,7 @@ class LNS:
         n_iterations = 0
         total_time = 0
         while total_time < self.max_time:
-            partial_solution = self.destroy(new_solution)
+            partial_solution = self.destroy(new_solution, nodes_cost)
             new_solution = self.repair(
                 partial_solution, self.adj_matrix, self.nodes_cost
             )
