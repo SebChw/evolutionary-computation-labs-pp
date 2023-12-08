@@ -1,5 +1,5 @@
 import random
-from typing import Any
+from typing import List, Optional
 
 import numpy as np
 
@@ -9,18 +9,29 @@ class Greedy2Regret:
         self.alpha = alpha
 
     def __call__(
-        self, adj_matrix: np.ndarray, nodes_cost: np.ndarray, starting_node: int = None
+        self,
+        adj_matrix: np.ndarray,
+        nodes_cost: np.ndarray,
+        starting_node: int = None,
+        starting_solution: Optional[List] = None,
     ):
         num_nodes = len(adj_matrix)
 
-        starting_node = (
-            random.randint(0, num_nodes - 1) if starting_node is None else starting_node
-        )
+        if starting_solution is None:
+            starting_node = (
+                random.randint(0, num_nodes - 1)
+                if starting_node is None
+                else starting_node
+            )
 
-        first, second = np.argpartition(adj_matrix[starting_node] + nodes_cost, 1)[:2]
-        cheapest_node = int(first) if first != starting_node else int(second)
+            first, second = np.argpartition(adj_matrix[starting_node] + nodes_cost, 1)[
+                :2
+            ]
+            cheapest_node = int(first) if first != starting_node else int(second)
 
-        cycle = [starting_node, cheapest_node, starting_node]
+            cycle = [starting_node, cheapest_node, starting_node]
+        else:
+            cycle = starting_solution + starting_solution[0]
         in_cycle = set(cycle)
 
         while len(in_cycle) < num_nodes // 2:

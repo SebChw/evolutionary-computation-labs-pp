@@ -1,16 +1,15 @@
 import json
 import time
 from collections import defaultdict
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import asdict
 
-import numpy as np
 from joblib import Parallel, delayed
 
 from algorithms.ils import ILS
 from algorithms.local_search import LocalSearch
 from algorithms.msls import MSLS
-from algorithms.random import random_hamiltonian
+from algorithms.lns import LNS
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
 
@@ -92,14 +91,37 @@ def evaluate_ils(problem: str, instance: dict):
             }
         )
 
+def evaluate_lns(problem: str, instance: dict):
+    N_ITERATIONS = 20
+    distance_matrix = instance["dist_matrix"]
+    nodes_cost = instance["nodes_cost"]
+
+    tasks = [] 
+    for _ in range(N_ITERATIONS):
+        ils = LNS()
+        tasks.append(delayed(ils)(distance_matrix, nodes_cost))
+
+    n_jobs = len(tasks)
+    parallel_results = Parallel(n_jobs=n_jobs)(tasks)
+
+    for result in parallel_results:
+        solution_dict = asdict(Solution(result["solution"], result["cost"]))
+        results[problem].append(
+            {
+                "method": "lns",
+                "solution": solution_dict,
+                "n_iterations": result["n_iterations"],
+            }
+        )
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
     # evaluate_msls(problem, instance)
-    evaluate_ils(problem, instance)
+    # evaluate_ils(problem, instance)
+    evaluate_lns(problem, instance)
 
 
 # Save the results to a JSON file
-with open("solutionsILS_basic.json", "w") as file:
+with open("solutionsLNS.json", "w") as file:
     json.dump(dict(results), file, indent=4)
-print("Results have been saved to solutions20.json")
+print("Results have been saved to solutionsLNS.json")
