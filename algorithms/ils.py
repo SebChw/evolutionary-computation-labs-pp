@@ -18,7 +18,7 @@ class ILS:
         self.exchange_nodes = False
 
         # TODO: THIS MAX TIME SHOULD BE SET TO 200 * average time obtained for MSLS
-        self.max_time = 200*7
+        self.max_time = 20
 
     def perform_local_search(self, starting_solution: np.ndarray) -> Dict:
         start_time = time.perf_counter()
@@ -98,7 +98,7 @@ class ILS:
 
         old_cost = best_cost
         while total_time < self.max_time:
-            new_solution = self.perform_local_search(self.perturb(best_solution))
+            new_solution = self.perform_local_search(self.perturb(deepcopy(best_solution)))
             self.iterations += 1
             total_time += new_solution["time"]
 
