@@ -1,4 +1,3 @@
-import random
 import time
 from copy import deepcopy
 from typing import Dict
@@ -52,6 +51,7 @@ class LNS:
         return repaired_solution
 
     def __call__(self, adj_matrix: np.ndarray, nodes_cost: np.ndarray) -> Dict:
+        print("call")
         self.adj_matrix = adj_matrix
         self.nodes_cost = nodes_cost
 

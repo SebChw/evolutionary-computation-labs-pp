@@ -99,7 +99,7 @@ def evaluate_lns(problem: str, instance: dict):
 
     tasks = []
     for _ in range(N_ITERATIONS):
-        ils = LNS()
+        ils = LNS(do_LS=True)
         tasks.append(delayed(ils)(distance_matrix, nodes_cost))
 
     n_jobs = len(tasks)
@@ -124,6 +124,6 @@ for problem, instance in data.items():
 
 
 # Save the results to a JSON file
-with open("solutionsLNS.json", "w") as file:
+with open("solutionsLNS_LS.json", "w") as file:
     json.dump(dict(results), file, indent=4)
-print("Results have been saved to solutionsLNS.json")
+print("Results have been saved to solutionsLNS_LS.json")
