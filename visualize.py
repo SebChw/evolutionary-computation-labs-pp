@@ -2,7 +2,6 @@ import json
 
 import matplotlib.pyplot as plt
 import numpy as np
-from tabulate import tabulate
 
 from data.data_parser import get_data
 
@@ -34,8 +33,7 @@ def plot_solution(
     y_coords = [matrix[node][1] for node in nodes]
     costs = [matrix[node][2] for node in nodes]
 
-    normalized_costs = (costs - np.min(costs)) / \
-        (np.max(costs) - np.min(costs))
+    normalized_costs = (costs - np.min(costs)) / (np.max(costs) - np.min(costs))
 
     plt.scatter(
         x_coords, y_coords, s=1200, c=normalized_costs, cmap="coolwarm", alpha=0.6
@@ -118,8 +116,7 @@ def get_extremes(solutions: dict):
 def create_table_data(best_solutions, worst_solutions, average_solutions):
     tables = {}
 
-    algorithm_names = [
-        x for x in best_solutions[list(best_solutions.keys())[0]].keys()]
+    algorithm_names = [x for x in best_solutions[list(best_solutions.keys())[0]].keys()]
 
     for problem_name in best_solutions.keys():
         rows = [["best"], ["worst"], ["average"]]
@@ -151,8 +148,7 @@ def main():
     with open("solutions.json", "r") as file:
         solutions = json.load(file)
 
-    best_solutions, worst_solutions, average_solutions = get_extremes(
-        solutions)
+    best_solutions, worst_solutions, average_solutions = get_extremes(solutions)
 
     data = get_data()
     for problem_name in data.keys():
