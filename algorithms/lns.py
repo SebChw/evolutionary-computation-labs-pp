@@ -43,7 +43,7 @@ class LNS:
         Repair operator: rebuilds the solution, potentially finding a better one.
         Use best greedy heuristic here.
         """
-        greedy = Greedy2Regret()
+        greedy = Greedy2Regret(alpha=0.5)
         repaired_solution = greedy(
             adj_matrix, nodes_cost, starting_solution=partial_solution
         )
@@ -55,37 +55,47 @@ class LNS:
         self.adj_matrix = adj_matrix
         self.nodes_cost = nodes_cost
 
-        initial_solution = random_hamiltonian(adj_matrix, nodes_cost)
+        local_search = LocalSearch(self.strategy, self.exchange_nodes)
+        # initialize solution and perform local search
+        best_solution = local_search(
+            self.adj_matrix, self.nodes_cost, random_hamiltonian(adj_matrix, nodes_cost)
+        )
+        best_cost = calculate_path_cost(best_solution, self.adj_matrix, self.nodes_cost)
 
         start_time = time.perf_counter()
-        new_solution = deepcopy(initial_solution)
-        new_cost = calculate_path_cost(new_solution, self.adj_matrix, self.nodes_cost)
         n_iterations = 0
         total_time = 0
         while total_time < self.max_time:
-            partial_solution = self.destroy(new_solution, nodes_cost)
-            new_solution = self.repair(
-                partial_solution, self.adj_matrix, self.nodes_cost
-            )
+            # Start from copy of the best solution
+            new_solution = deepcopy(best_solution)
+
+            # Destroy it
+            new_solution = self.destroy(new_solution, nodes_cost)
+
+            # repair with weighted 2 regert
+            new_solution = self.repair(new_solution, self.adj_matrix, self.nodes_cost)
+
+            # Apply LS if needed
+            if self.do_LS:
+                local_search = LocalSearch(self.strategy, self.exchange_nodes)
+                new_solution = local_search(
+                    self.adj_matrix, self.nodes_cost, new_solution
+                )
+
             new_cost = calculate_path_cost(
                 new_solution, self.adj_matrix, self.nodes_cost
             )
-            if self.do_LS:
-                local_search = LocalSearch(self.strategy, self.exchange_nodes)
-                solution_LS = local_search(
-                    self.adj_matrix, self.nodes_cost, deepcopy(new_solution)
-                )
-                solution_LS_cost = calculate_path_cost(
-                    solution_LS, self.adj_matrix, self.nodes_cost
-                )
-                if solution_LS_cost > new_cost:
-                    new_solution = solution_LS
-                    new_cost = solution_LS_cost
+
+            # If we observe improvement, update best solution
+            if best_cost > new_cost:
+                best_solution = new_solution
+                best_cost = new_cost
+
             n_iterations += 1
             total_time = time.perf_counter() - start_time
 
         return {
-            "solution": new_solution,
-            "cost": new_cost,
+            "solution": best_solution,
+            "cost": best_cost,
             "n_iterations": n_iterations,
         }
