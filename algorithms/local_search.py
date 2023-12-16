@@ -121,10 +121,8 @@ class LocalSearch:
         for i, j in self.pairs_to_check_intra:
             # Get actual nodes and their neighbors
             node_i, node_j = nodes[i], nodes[j]
-            neighbor_i_l, neighbor_i_r = nodes[i -
-                                               1], nodes[(i + 1) % n_indices]
-            neighbor_j_l, neighbor_j_r = nodes[j -
-                                               1], nodes[(j + 1) % n_indices]
+            neighbor_i_l, neighbor_i_r = nodes[i - 1], nodes[(i + 1) % n_indices]
+            neighbor_j_l, neighbor_j_r = nodes[j - 1], nodes[(j + 1) % n_indices]
 
             # This operation changes 4 edges, we don't need to consider nodes costs
             curr_len = (
@@ -193,16 +191,16 @@ class LocalSearch:
         if i < j:
             # From the start to i (exlusive) it stays the same. Then I connect i with j. Next I need to go to the right neighor of i but in reversed order. Finally I add the rest of the nodes
             # in this case i remove edges to right neighbors
-            return nodes[: i + 1] + [nodes[j]] + nodes[j - 1: i: -1] + nodes[j + 1:]
+            return nodes[: i + 1] + [nodes[j]] + nodes[j - 1 : i : -1] + nodes[j + 1 :]
         else:
             # This kind of reverse order, i > j
             # From end to i in reversed order -> i to j -> from j to the left neighbour of i in correct order -> from left neighbour of i to the left of j and to the beginning in reversed order
             # Here I remove edges to left neighbors
             solution = (
-                nodes[-1: i - 1: -1]
+                nodes[-1 : i - 1 : -1]
                 + [nodes[j]]
-                + nodes[j + 1: i]
-                + nodes[max(j - 1, 0): 0: -1]
+                + nodes[j + 1 : i]
+                + nodes[max(j - 1, 0) : 0 : -1]
             )
             if j != 0:
                 solution.append(nodes[0])
@@ -229,8 +227,7 @@ class LocalSearch:
         # Evaluate all pairs
         for i, j in self.pairs_to_check_inter:
             node_i, node_j = nodes[i], not_selected[j]
-            neighbor_i_l, neighbor_i_r = nodes[i -
-                                               1], nodes[(i + 1) % len(nodes)]
+            neighbor_i_l, neighbor_i_r = nodes[i - 1], nodes[(i + 1) % len(nodes)]
 
             # Now we just compute distances between node_i and if we subtract it with node_j
             curr_len, len_after_change = self.compute_distances_inter(
@@ -252,8 +249,7 @@ class LocalSearch:
             np.random.shuffle(self.pairs_to_check_intra)
 
             # Initialize generators that will yield suggested exchanges
-            inter_route_deltas = self.inter_route_exchange_deltas(
-                copy(self.solution))
+            inter_route_deltas = self.inter_route_exchange_deltas(copy(self.solution))
             intra_route_deltas = self.intra_neigh_deltas(copy(self.solution))
 
             # Select when we will try to perform intra or inter route exchange
@@ -535,8 +531,7 @@ class LocalSearch:
     def steepest(
         self,
     ):
-        old_cost = calculate_path_cost(
-            self.solution, self.adj_matrix, self.nodes_cost)
+        old_cost = calculate_path_cost(self.solution, self.adj_matrix, self.nodes_cost)
         old_solution = None
 
         # Preparations before strategy
@@ -584,16 +579,13 @@ class LocalSearch:
                             best_move = (i - 1, node_j, INTER)
                         elif delta_r > best_delta:
                             best_delta = delta_r
-                            best_move = ((i + 1) %
-                                         len(self.solution), node_j, INTER)
+                            best_move = ((i + 1) % len(self.solution), node_j, INTER)
                 # INTRA
                 for i, node_i in enumerate(self.solution):
                     for j, node_j in enumerate(self.solution):
                         if node_j in self.candidate_list[node_i]:
-                            delta_i_to_j = self.compute_delta_edges_correct(
-                                i, j)
-                            delta_j_to_i = self.compute_delta_edges_correct(
-                                j, i)
+                            delta_i_to_j = self.compute_delta_edges_correct(i, j)
+                            delta_j_to_i = self.compute_delta_edges_correct(j, i)
 
                             if (
                                 delta_i_to_j > delta_j_to_i
@@ -626,8 +618,7 @@ class LocalSearch:
                         to_put_back.append((delta, random_value, move_dict))
                     else:
                         best_delta = delta
-                        move_dict["move"] = self.infer_best_move(
-                            changed, change_type)
+                        move_dict["move"] = self.infer_best_move(changed, change_type)
                         best_move = move_dict
                         break
 
