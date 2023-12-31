@@ -38,57 +38,75 @@ class LNS:
     def common_crossover(self, parentA, parentB):
         # get common nodes
         common_nodes = set(parentA).intersection(set(parentB))
-        n_possible_nodes = self.adj_matrix.shape[0]
 
-        # get common edges
-        edgesA = self.get_edges(parentA)
-        edgesB = self.get_edges(parentB)
-
-        common_edges = list(set(edgesA).intersection(set(edgesB)))
-        # Incoming and outcoming map will be used to reconstruct paths
-        incoming_map = {edge[0]: edge[1] for edge in common_edges}
-
-        #! First create all separate subpaths
-        used_edges = set()
+        # First create all separate common subpaths. It is enough to iterate over one parent - no matter which
         subpaths = []
-        for edge in common_edges[1:]:
-            if edge not in used_edges:
-                subpath = [edge[0], edge[1]]
-                used_edges.add(edge)
-                while subpath[-1] in incoming_map:
-                    # we have to reconstruct the path
-                    subpath.append(incoming_map[subpath[-1]])
-                    edge = (subpath[-2], subpath[-1])
-                    used_edges.add(edge)
+        i = 0
+        while i < len(parentA):
+            if parentA[i] in common_nodes:
+                subpath = [parentA[i]]
+                i += 1
+                while parentA[i] in common_nodes:
+                    subpath.append(parentA[i])
+                    i += 1
+                if len(subpath) > 1:
+                    subpaths.append(subpath)
+            else:
+                i += 1
 
-                subpaths.append(subpath)
+        # Take care of the last connection
+        if subpaths[-1][-1] == parentA[-1] and parentA[0] in common_nodes:
+            # At first check if we can merge last and first subpath, if not append first node to last subpath
+            if subpaths[0][0] == parentA[0]:
+                subpaths[0] = subpaths.pop() + subpaths[0]
+            else:
+                subpaths[-1].append(parentA[0])
 
-        #! Now we have to connect subpaths into offspring
+        n_nodes_in_subpaths = sum([len(subpath) for subpath in subpaths])
+
+        offspring = []
+        # Place subpaths in somehow random order. Total random would be very computationally expensive
+        random.shuffle(subpaths)
+        p = 1 / len(subpaths)
+        indices_to_be_filled = []
+        while len(subpaths) > 0:
+            if len(parentA) - len(offspring) == n_nodes_in_subpaths:
+                subpath = subpaths.pop()
+                offspring.extend(subpath)
+                n_nodes_in_subpaths -= len(subpath)
+            elif random.random() < p:
+                subpath = subpaths.pop()
+                offspring.extend(subpath)
+                n_nodes_in_subpaths -= len(subpath)
+            else:
+                # Special places to which we will later add nodes
+                offspring.append(NOT_YET_FOUND)
+                indices_to_be_filled.append(len(offspring) - 1)
+
+        # At this point length should math
+        assert len(offspring) == len(parentA)
+
         used_nodes = set()
-        for edge in common_edges:
-            used_nodes.add(edge[0])
-            used_nodes.add(edge[1])
+        for path in subpaths:
+            used_nodes.update(path)
 
         # We cannot use node that consitutes a common edge as we will have a duplicate
         common_nodes_to_use = list(common_nodes.difference(used_nodes))
+        n_possible_nodes = self.adj_matrix.shape[0]
         uncommon_nodes = list(set(range(n_possible_nodes)).difference(common_nodes))
         random.shuffle(common_nodes_to_use)
-        random.shuffle(uncommon_nodes)
-        offspring = []
 
-        # this actually biases the algorithm as we always create connect subbpaths just by single node
-        for subpath in subpaths:
-            offspring.extend(subpath)
-            if len(common_nodes_to_use) > 1:
-                offspring.append(common_nodes_to_use.pop())
-            else:
-                offspring.append(uncommon_nodes.pop())
+        while len(indices_to_be_filled) > 0:
+            index = indices_to_be_filled.pop()
 
-        while len(offspring) < len(parentA):
-            if len(common_nodes_to_use) > 1:
-                offspring.append(common_nodes_to_use.pop())
+            # Find a node that is not yet in the offspring
+            if len(common_nodes_to_use) > 0 and (
+                random.random() < 0.5
+                or len(indices_to_be_filled) - 1 == len(common_nodes_to_use)
+            ):
+                offspring[index] = common_nodes_to_use.pop()
             else:
-                offspring.append(uncommon_nodes.pop())
+                offspring[index] = uncommon_nodes.pop()
 
     def generate_initial_population(self):
         self.population = []
