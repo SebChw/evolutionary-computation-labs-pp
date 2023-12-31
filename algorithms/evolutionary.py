@@ -1,3 +1,4 @@
+import random
 import time
 from collections import namedtuple
 from copy import deepcopy
@@ -29,65 +30,65 @@ class LNS:
 
         self.recombination_operators = [self.common_crossover, self.repair_crossover]
 
+    def get_edges(self, solution):
+        return [(solution[i], solution[i + 1]) for i in range(len(solution) - 1)] + [
+            (solution[-1], solution[0])
+        ]
+
     def common_crossover(self, parentA, parentB):
         # get common nodes
         common_nodes = set(parentA).intersection(set(parentB))
         n_possible_nodes = self.adj_matrix.shape[0]
 
-        uncommon_nodes = set(range(n_possible_nodes)).difference(common_nodes)
-
         # get common edges
-        get_edges = lambda parent: [
-            (parent[i], parent[i + 1]) for i in range(len(parent) - 1)
-        ] + [(parent[-1], parent[0])]
-        edgesA = get_edges(parentA)
-        edgesB = get_edges(parentB)
+        edgesA = self.get_edges(parentA)
+        edgesB = self.get_edges(parentB)
 
         common_edges = list(set(edgesA).intersection(set(edgesB)))
         # Incoming and outcoming map will be used to reconstruct paths
         incoming_map = {edge[0]: edge[1] for edge in common_edges}
-        outcoming_map = {edge[1]: edge[0] for edge in common_edges}
-        # We cannot use node that consitutes a common edge as we will have a duplicate
+
+        #! First create all separate subpaths
+        used_edges = set()
+        subpaths = []
+        for edge in common_edges[1:]:
+            if edge not in used_edges:
+                subpath = [edge[0], edge[1]]
+                used_edges.add(edge)
+                while subpath[-1] in incoming_map:
+                    # we have to reconstruct the path
+                    subpath.append(incoming_map[subpath[-1]])
+                    edge = (subpath[-2], subpath[-1])
+                    used_edges.add(edge)
+
+                subpaths.append(subpath)
+
+        #! Now we have to connect subpaths into offspring
         used_nodes = set()
         for edge in common_edges:
             used_nodes.add(edge[0])
             used_nodes.add(edge[1])
 
+        # We cannot use node that consitutes a common edge as we will have a duplicate
         common_nodes_to_use = list(common_nodes.difference(used_nodes))
-        common_nodes_used = 0
-
+        uncommon_nodes = list(set(range(n_possible_nodes)).difference(common_nodes))
+        random.shuffle(common_nodes_to_use)
+        random.shuffle(uncommon_nodes)
         offspring = []
-        # first use all edges
-        used_edges = set()
-        
-        first_edge = common_edges[0]
-        used_edges.add(first_edge)
-        offspring.append(first_edge[0])
-        offspring.append(first_edge[1])
 
-        #! First create all separate subpaths
-        subpaths = []
-        for edge in common_edges[1:]:
-            # At first we try to reconstruct the path
-            while offspring[-1] in incoming_map:
-            # we have to reconstruct the path
-                offspring.append(incoming_map[offspring[-1]])
-                edge = (offspring[-2], offspring[-1])
-                used_edges.add(edge)
-            
-            if offspring[-1] != NOT_YET_FOUND:
-                # We add a placeholder for the node that we will add
-                offspring.append(NOT_YET_FOUND)
+        # this actually biases the algorithm as we always create connect subbpaths just by single node
+        for subpath in subpaths:
+            offspring.extend(subpath)
+            if len(common_nodes_to_use) > 1:
+                offspring.append(common_nodes_to_use.pop())
+            else:
+                offspring.append(uncommon_nodes.pop())
 
-            if edge not in used_edges:
-                used_edges.add(edge)
-                offspring.append(edge[0])
-                offspring.append(edge[1])
-
-            if offspring[-3] == NOT_YET_FOUND and 
-
-          
-
+        while len(offspring) < len(parentA):
+            if len(common_nodes_to_use) > 1:
+                offspring.append(common_nodes_to_use.pop())
+            else:
+                offspring.append(uncommon_nodes.pop())
 
     def generate_initial_population(self):
         self.population = []
