@@ -1,8 +1,7 @@
 import random
 import time
 from collections import namedtuple
-from copy import deepcopy
-from typing import Dict
+from typing import Dict, List, Set, Tuple
 
 import numpy as np
 
@@ -15,7 +14,7 @@ TSPSolution = namedtuple("TSPSolution", ["solution", "cost"])
 NOT_YET_FOUND = -1
 
 
-class LNS:
+class HybridEvolutionary:
     def __init__(self, elite_population_size=20, do_LS=True, max_time: int = 7 * 200):
         """
         Initialize the LNS algorithm parameters.
@@ -35,7 +34,7 @@ class LNS:
             (solution[-1], solution[0])
         ]
 
-    def common_crossover(self, parentA, parentB):
+    def common_crossover(self, parentA, parentB) -> List[int]:
         # get common nodes
         common_nodes = set(parentA).intersection(set(parentB))
 
@@ -46,7 +45,7 @@ class LNS:
             if parentA[i] in common_nodes:
                 subpath = [parentA[i]]
                 i += 1
-                while parentA[i] in common_nodes:
+                while i < len(parentA) and parentA[i] in common_nodes:
                     subpath.append(parentA[i])
                     i += 1
                 if len(subpath) > 1:
@@ -63,35 +62,31 @@ class LNS:
                 subpaths[-1].append(parentA[0])
 
         n_nodes_in_subpaths = sum([len(subpath) for subpath in subpaths])
-
         offspring = []
         # Place subpaths in somehow random order. Total random would be very computationally expensive
         random.shuffle(subpaths)
-        p = 1 / len(subpaths)
         indices_to_be_filled = []
-        while len(subpaths) > 0:
-            if len(parentA) - len(offspring) == n_nodes_in_subpaths:
-                subpath = subpaths.pop()
-                offspring.extend(subpath)
-                n_nodes_in_subpaths -= len(subpath)
-            elif random.random() < p:
-                subpath = subpaths.pop()
-                offspring.extend(subpath)
-                n_nodes_in_subpaths -= len(subpath)
-            else:
+        for path in subpaths:
+            n_nodes_in_subpaths -= len(path)
+            offspring.extend(path)
+            max_gap_size = len(parentA) - len(offspring) - n_nodes_in_subpaths
+            gap = random.randint(0, max_gap_size)
+
+            for _ in range(gap):
                 # Special places to which we will later add nodes
                 offspring.append(NOT_YET_FOUND)
                 indices_to_be_filled.append(len(offspring) - 1)
 
-        # At this point length should math
-        assert len(offspring) == len(parentA)
+        while len(offspring) < len(parentA):
+            offspring.append(NOT_YET_FOUND)
+            indices_to_be_filled.append(len(offspring) - 1)
 
-        used_nodes = set()
+        already_used_nodes = set()
         for path in subpaths:
-            used_nodes.update(path)
+            already_used_nodes.update(path)
 
         # We cannot use node that consitutes a common edge as we will have a duplicate
-        common_nodes_to_use = list(common_nodes.difference(used_nodes))
+        common_nodes_to_use = list(common_nodes.difference(already_used_nodes))
         n_possible_nodes = self.adj_matrix.shape[0]
         uncommon_nodes = list(set(range(n_possible_nodes)).difference(common_nodes))
         random.shuffle(common_nodes_to_use)
@@ -108,63 +103,90 @@ class LNS:
             else:
                 offspring[index] = uncommon_nodes.pop()
 
-    def generate_initial_population(self):
-        self.population = []
-        self.population_costs = set()
+        assert len(set(offspring)) == len(offspring)
+        return offspring
 
-        while len(self.population) < self.elite_population_size:
+    def repair_crossover(self, parentA, parentB) -> List[int]:
+        def repair(partial_solution, adj_matrix, nodes_cost):
+            """
+            Repair operator: rebuilds the solution, potentially finding a better one.
+            Use best greedy heuristic here.
+            """
+            greedy = Greedy2Regret(alpha=0.5)
+            repaired_solution = greedy(
+                adj_matrix, nodes_cost, starting_solution=partial_solution
+            )
+
+            return repaired_solution
+
+        if random.random() < 0.5:
+            parentA, parentB = parentB, parentA
+
+        second_parent_nodes = set(parentB)
+        offspring = []
+        for node in parentA:
+            if node in second_parent_nodes:
+                offspring.append(node)
+
+        return repair(offspring, self.adj_matrix, self.nodes_cost)
+
+    def generate_initial_population(self) -> Tuple[List[TSPSolution], Set[int]]:
+        population = []
+        population_costs = set()
+
+        while len(population) < self.elite_population_size:
             solution = self.local_search(
                 self.adj_matrix,
                 self.nodes_cost,
                 random_hamiltonian(self.adj_matrix, self.nodes_cost),
             )
             cost = calculate_path_cost(solution, self.adj_matrix, self.nodes_cost)
-            if cost not in self.population_costs:
-                self.population_costs.add(cost)
+            if cost not in population_costs:
+                population_costs.add(cost)
                 solution = TSPSolution(solution=solution, cost=cost)
-                self.population.append(solution)
+                population.append(solution)
+
+        return population, population_costs
 
     def __call__(self, adj_matrix: np.ndarray, nodes_cost: np.ndarray) -> Dict:
+        start_time = time.perf_counter()
+
         self.adj_matrix = adj_matrix
         self.nodes_cost = nodes_cost
 
-        population = self.generate_initial_population()
+        population, population_cost = self.generate_initial_population()
+        population = sorted(population, key=lambda x: x.cost)
 
-        start_time = time.perf_counter()
         n_iterations = 0
         while time.perf_counter() - start_time < self.max_time:
             # Select parents
-            parentA, parentB = np.random.choice(self.population, size=2, replace=False)
+            idx = np.random.choice(len(population), size=2, replace=False)
+            parentA, parentB = population[idx[0]].solution, population[idx[1]].solution
 
-            # Start from copy of the best solution
-            new_solution = deepcopy(best_solution)
+            # Generate offspring
+            offspring = random.choice(self.recombination_operators)(parentA, parentB)
 
-            # Destroy it
-            new_solution = self.destroy(new_solution, nodes_cost)
-
-            # repair with weighted 2 regert
-            new_solution = self.repair(new_solution, self.adj_matrix, self.nodes_cost)
-
-            # Apply LS if needed
             if self.do_LS:
-                local_search = LocalSearch(self.strategy, self.exchange_nodes)
-                new_solution = local_search(
-                    self.adj_matrix, self.nodes_cost, new_solution
+                offspring = self.local_search(
+                    self.adj_matrix, self.nodes_cost, offspring
                 )
 
-            new_cost = calculate_path_cost(
-                new_solution, self.adj_matrix, self.nodes_cost
+            offspring_cost = calculate_path_cost(
+                offspring, self.adj_matrix, self.nodes_cost
             )
 
-            # If we observe improvement, update best solution
-            if best_cost > new_cost:
-                best_solution = new_solution
-                best_cost = new_cost
+            if (
+                offspring_cost < population[-1].cost
+                and offspring_cost not in population_cost
+            ):
+                population_cost.remove(population[-1].cost)
+                population_cost.add(offspring_cost)
+                population[-1] = TSPSolution(solution=offspring, cost=offspring_cost)
+                population = sorted(population, key=lambda x: x.cost)
 
-            n_iterations += 1
-
+            print(population_cost)
         return {
-            "solution": best_solution,
-            "cost": best_cost,
+            "solution": population[0].solution,
+            "cost": population[0].cost,
             "n_iterations": n_iterations,
         }
