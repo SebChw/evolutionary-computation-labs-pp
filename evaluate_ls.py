@@ -146,7 +146,7 @@ def hybridevolutionary(instance: dict):
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
-    evo = HybridEvolutionary(elite_population_size=3)
+    evo = HybridEvolutionary(elite_population_size=20)
     result = evo(distance_matrix, nodes_cost)
 
 
