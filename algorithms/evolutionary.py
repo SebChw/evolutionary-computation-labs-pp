@@ -12,8 +12,11 @@ from algorithms.local_search import LocalSearch, LSStrategy
 from algorithms.random import random_hamiltonian
 from algorithms.utils import calculate_path_cost
 
+LOG_FILENAME = datetime.now().strftime("logfile_%H_%M_%S_%d_%m_%Y.log")
 logging.basicConfig(
-    filename=f"{str(datetime.now())}.log", encoding="utf-8", level=logging.DEBUG
+    filename=LOG_FILENAME,
+    encoding="utf-8",
+    level=logging.DEBUG,
 )
 
 TSPSolution = namedtuple("TSPSolution", ["solution", "cost"])
@@ -44,30 +47,37 @@ class HybridEvolutionary:
         # get common nodes
         common_nodes = set(parentA).intersection(set(parentB))
 
-        # First create all separate common subpaths. It is enough to iterate over one parent - no matter which
+        # Get common subpaths
+        edgesA = self.get_edges(parentA)
+        edgesB = self.get_edges(parentB)
+        common_edges = list(set(edgesA).intersection(set(edgesB)))
+        # Incoming and outcoming map will be used to reconstruct paths
+        incoming_map = {edge[0]: edge[1] for edge in common_edges}
+        outcoming_map = {edge[1]: edge[0] for edge in common_edges}
+        used_edges = set()
         subpaths = []
-        i = 0
-        while i < len(parentA):
-            if parentA[i] in common_nodes:
-                subpath = [parentA[i]]
-                i += 1
-                while i < len(parentA) and parentA[i] in common_nodes:
-                    subpath.append(parentA[i])
-                    i += 1
-                if len(subpath) > 1:
-                    subpaths.append(subpath)
-            else:
-                i += 1
+        for edge in common_edges:
+            if edge not in used_edges:
+                subpath = [edge[0], edge[1]]
+                used_edges.add(edge)
+                while True:
+                    if subpath[-1] in incoming_map:
+                        # we have to reconstruct the path
+                        subpath.append(incoming_map[subpath[-1]])
+                        edge = (subpath[-2], subpath[-1])
+                        used_edges.add(edge)
+                    elif subpath[0] in outcoming_map:
+                        subpath.insert(0, outcoming_map[subpath[0]])
+                        edge = (subpath[0], subpath[1])
+                        used_edges.add(edge)
+                    else:
+                        break
 
-        # Take care of the last connection
-        if subpaths[-1][-1] == parentA[-1] and parentA[0] in common_nodes:
-            # At first check if we can merge last and first subpath, if not append first node to last subpath
-            if subpaths[0][0] == parentA[0]:
-                logging.debug(f"rare case 1, subpaths:len {len(subpaths)}")
-                subpaths[0] = subpaths.pop() + subpaths[0]
-            else:
-                logging.debug(f"rare case 2, subpaths:len {len(subpaths)}")
-                subpaths[-1].append(parentA[0])
+                subpaths.append(subpath)
+
+        logging.debug(
+            f"parentA: {parentA}\n, parentB: {parentB}\n, subpaths: {subpaths}\n, common_nodes: {common_nodes}"
+        )
 
         n_nodes_in_subpaths = sum([len(subpath) for subpath in subpaths])
         if n_nodes_in_subpaths > len(parentA):
@@ -138,14 +148,32 @@ class HybridEvolutionary:
 
             return repaired_solution
 
-        if random.random() < 0.5:
-            parentA, parentB = parentB, parentA
+        edgesA = self.get_edges(parentA)
+        edgesB = self.get_edges(parentB)
+        common_edges = list(set(edgesA).intersection(set(edgesB)))
 
-        second_parent_nodes = set(parentB)
-        offspring = []
-        for node in parentA:
-            if node in second_parent_nodes:
-                offspring.append(node)
+        if random.random() < 0.5:
+            base_edges = edgesA
+        else:
+            base_edges = edgesB
+
+        offspring = [base_edges[0][0], base_edges[0][1]]
+        for edge in base_edges[1:]:
+            if edge in common_edges:
+                if offspring[-1] != edge[0]:
+                    offspring.append(edge[0])
+                if offspring[0] != edge[1]:
+                    offspring.append(edge[1])
+
+        logging.debug(
+            f"Crossover Repair: parentA: {parentA}\n, parentB: {parentB}\n, offspring: {offspring}"
+        )
+
+        if len(set(offspring)) != len(offspring):
+            logging.error(
+                f"Offspring: {offspring}\n ParentA: {parentA}\n ParentB: {parentB})"
+            )
+            raise Exception("Duplicate nodes in offspring!")
 
         return repair(offspring, self.adj_matrix, self.nodes_cost)
 
@@ -203,7 +231,9 @@ class HybridEvolutionary:
                 population[-1] = TSPSolution(solution=offspring, cost=offspring_cost)
                 population = sorted(population, key=lambda x: x.cost)
 
-            print(population_cost)
+            logging.debug(
+                f"iteration {n_iterations}: population_cost: {population_cost}"
+            )
         return {
             "solution": population[0].solution,
             "cost": population[0].cost,
