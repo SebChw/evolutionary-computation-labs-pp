@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 from joblib import Parallel, delayed
 
+from algorithms.evolutionary import HybridEvolutionary
 from algorithms.ils import ILS
 from algorithms.lns import LNS
 from algorithms.local_search import LocalSearch, LSStrategy
@@ -141,9 +142,17 @@ def perform_n_greedy(n: int, instance: dict):
         )
 
 
+def hybridevolutionary(instance: dict):
+    distance_matrix = instance["dist_matrix"]
+    nodes_cost = instance["nodes_cost"]
+
+    evo = HybridEvolutionary(elite_population_size=20)
+    result = evo(distance_matrix, nodes_cost)
+
+
 for problem, instance in data.items():
     print(f"Problem: {problem}")
-    perform_n_greedy(1000, instance)
+    hybridevolutionary(instance)
 
 
 # Save the results to a JSON file
