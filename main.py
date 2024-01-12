@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 from algorithms.greedy_2_regret import Greedy2Regret
 from algorithms.greedy_cycle import greedy_cycle
 from algorithms.nn import nearest_neighbor_hamiltonian
-from algorithms.random import random_hamiltonian
+from algorithms.random_solution import random_hamiltonian
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
 

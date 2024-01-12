@@ -5,7 +5,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from algorithms.local_search import LocalSearch, LSStrategy
-from algorithms.random import random_hamiltonian
+from algorithms.random_solution import random_hamiltonian
 from algorithms.utils import calculate_path_cost
 
 

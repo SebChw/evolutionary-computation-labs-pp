@@ -1,14 +1,13 @@
 import random
 import time
+from copy import deepcopy
 from typing import Dict
 
 import numpy as np
 
 from algorithms.local_search import LocalSearch, LSStrategy
-from algorithms.random import random_hamiltonian
+from algorithms.random_solution import random_hamiltonian
 from algorithms.utils import calculate_path_cost
-
-from copy import deepcopy
 
 
 class ILS:
@@ -98,20 +97,28 @@ class ILS:
 
         old_cost = best_cost
         while total_time < self.max_time:
-            new_solution = self.perform_local_search(self.perturb(deepcopy(best_solution)))
+            new_solution = self.perform_local_search(
+                self.perturb(deepcopy(best_solution))
+            )
             self.iterations += 1
             total_time += new_solution["time"]
 
             # TODO You must balance between how many times you come back to the solution and how many times you improve it using size of changes
             # if new_solution["cost"] == old_cost:
-                # print("Returned to the previous solution!")
+            # print("Returned to the previous solution!")
             old_cost = new_solution["cost"]
 
             if new_solution["cost"] < best_cost:
                 # print("improvement")
                 best_cost = deepcopy(new_solution["cost"])
                 best_solution = deepcopy(new_solution["solution"])
-                print(best_solution, best_cost, calculate_path_cost(best_solution, self.adj_matrix, self.nodes_cost))
+                print(
+                    best_solution,
+                    best_cost,
+                    calculate_path_cost(
+                        best_solution, self.adj_matrix, self.nodes_cost
+                    ),
+                )
                 i_for_best_solution = self.iterations
 
         return {

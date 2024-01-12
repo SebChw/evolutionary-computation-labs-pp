@@ -6,7 +6,7 @@ import numpy as np
 
 from algorithms.greedy_2_regret import Greedy2Regret
 from algorithms.local_search import LocalSearch, LSStrategy
-from algorithms.random import random_hamiltonian
+from algorithms.random_solution import random_hamiltonian
 from algorithms.utils import calculate_path_cost
 
 
