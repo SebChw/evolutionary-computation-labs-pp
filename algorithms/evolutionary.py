@@ -3,7 +3,7 @@ import random
 import time
 from collections import namedtuple
 from datetime import datetime
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple
 
 import numpy as np
 
@@ -220,8 +220,12 @@ class HybridEvolutionary:
             logging.debug(
                 f"iteration {n_iterations}: population_cost: {population_cost}"
             )
+
+            n_iterations += 1
         return {
             "solution": population[0].solution,
             "cost": population[0].cost,
             "n_iterations": n_iterations,
+            "time": time.perf_counter() - start_time,
+            "max_time": self.max_time,
         }

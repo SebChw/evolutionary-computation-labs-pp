@@ -12,8 +12,8 @@ def get_result(data: dict, key: str = "cost"):
 
     for problem, problem_results in data.items():
         for result in problem_results:
-            cost = result["solution"][key]
-            nodes = result["solution"]["nodes"]
+            cost = result[key]
+            nodes = result["solution"]
             if results["best"][problem] == 0:
                 results["best"][problem] = cost
                 results["worst"][problem] = cost
@@ -23,7 +23,7 @@ def get_result(data: dict, key: str = "cost"):
                 best_nodes[problem] = nodes
             if cost > results["worst"][problem]:
                 results["worst"][problem] = cost
-            results["avg"][problem] += cost / 200
+            results["avg"][problem] += cost / 20
 
     return results, best_nodes
 
@@ -40,11 +40,11 @@ def get_time_results(data):
             results["worst"][problem] = max(
                 cost, results["worst"].get(problem, float("-inf"))
             )
-            results["avg"][problem] += cost / 200
+            results["avg"][problem] += cost / 20
     return results
 
 
-with open("solutionsLNS_LS.json", "r") as f:
+with open("solutions_evo.json", "r") as f:
     data = json.load(f)
 
 
@@ -59,7 +59,7 @@ for problem, problem_results in nodes.items():
         matrix,
         (problem_results, cost_results["best"][problem]),
         problem,
-        "LNS_LS",
+        "evo",
     )
 
 print(json.dumps(cost_results, indent=4))

@@ -146,16 +146,23 @@ def hybridevolutionary(instance: dict):
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
-    evo = HybridEvolutionary(elite_population_size=20)
+    evo = HybridEvolutionary(elite_population_size=3, do_LS=False, max_time=7 * 200)
     result = evo(distance_matrix, nodes_cost)
+    return result
 
+
+results = defaultdict(list)
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
-    hybridevolutionary(instance)
+
+    # Parallel execution of the hybridevolutionary function for each instance
+    results[problem] = Parallel(n_jobs=-1)(
+        delayed(hybridevolutionary)(instance) for _ in range(20)
+    )
 
 
 # Save the results to a JSON file
-with open("solutions_greedy.json", "w") as file:
-    json.dump(dict(results), file, indent=4)
-print("Results have been saved to solutionsLNS.json")
+with open("solutions_evo.json", "w") as file:
+    json.dump(results, file, indent=4)
+print("Results have been saved to solutions_evo.json")
