@@ -12,7 +12,7 @@ def save_scatterplot(x, y, xlabel, ylabel, title, filename):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.savefig(filename)
+    plt.savefig(f"visualizations/8/{filename}")
     plt.clf()
 
 

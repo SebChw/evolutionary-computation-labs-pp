@@ -143,10 +143,10 @@ def perform_n_greedy(n: int, instance: dict):
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
-    perform_n_greedy(10, instance)
+    perform_n_greedy(1000, instance)
 
 
 # Save the results to a JSON file
 with open("solutions_greedy.json", "w") as file:
     json.dump(dict(results), file, indent=4)
-print("Results have been saved to solutionsLNS.json")
+print("Results have been saved to solutions_greedy.json")
