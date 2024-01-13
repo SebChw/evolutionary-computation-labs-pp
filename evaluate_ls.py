@@ -146,7 +146,7 @@ def hybridevolutionary(instance: dict):
     distance_matrix = instance["dist_matrix"]
     nodes_cost = instance["nodes_cost"]
 
-    evo = HybridEvolutionary(elite_population_size=3, do_LS=False, max_time=7 * 200)
+    evo = HybridEvolutionary(elite_population_size=3, do_LS=False, max_time=7 * 2)
     result = evo(distance_matrix, nodes_cost)
     return result
 
@@ -158,7 +158,7 @@ for problem, instance in data.items():
 
     # Parallel execution of the hybridevolutionary function for each instance
     results[problem] = Parallel(n_jobs=-1)(
-        delayed(hybridevolutionary)(instance) for _ in range(20)
+        delayed(hybridevolutionary)(instance) for _ in range(200)
     )
 
 
