@@ -11,7 +11,7 @@ from algorithms.ils import ILS
 from algorithms.lns import LNS
 from algorithms.local_search import LocalSearch, LSStrategy
 from algorithms.msls import MSLS
-from algorithms.random import random_hamiltonian
+from algorithms.random_solution import random_hamiltonian
 from algorithms.utils import Solution, calculate_path_cost
 from data.data_parser import get_data
 
