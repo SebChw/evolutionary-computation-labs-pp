@@ -151,15 +151,44 @@ def hybridevolutionary(instance: dict):
     return result
 
 
+def max_time_hybrid_evolutionary(instance: dict):
+    distance_matrix = instance["dist_matrix"]
+    nodes_cost = instance["nodes_cost"]
+
+    current_time = time.perf_counter()
+    results = []
+
+    while time.perf_counter() - current_time < 7 * 10:
+        evo = HybridEvolutionary(
+            elite_population_size=3,
+            do_LS=True,
+            max_time=7 * 10,
+        )
+        result = evo(distance_matrix, nodes_cost)
+        results.append(result)
+
+    return results
+
+
 results = defaultdict(list)
 
 for problem, instance in data.items():
     print(f"Problem: {problem}")
 
-    # Parallel execution of the hybridevolutionary function for each instance
+    # # Parallel execution of the hybridevolutionary function for each instance
+    # results[problem] = Parallel(n_jobs=-1)(
+    #     delayed(hybridevolutionary)(instance) for _ in range(200)
+    # )
     results[problem] = Parallel(n_jobs=-1)(
-        delayed(hybridevolutionary)(instance) for _ in range(200)
+        delayed(max_time_hybrid_evolutionary)(instance) for _ in range(2)
     )
+
+for problem in results:
+    partial_results = []
+    for result_list in results[problem]:
+        for result in result_list:
+            partial_results.append(result)
+    results[problem] = partial_results
 
 
 # Save the results to a JSON file

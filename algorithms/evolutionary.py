@@ -1,4 +1,5 @@
 import logging
+import pickle
 import random
 import time
 from collections import namedtuple
@@ -24,7 +25,12 @@ NOT_YET_FOUND = -1
 
 
 class HybridEvolutionary:
-    def __init__(self, elite_population_size=20, do_LS=True, max_time: int = 7 * 200):
+    def __init__(
+        self,
+        elite_population_size=20,
+        do_LS=True,
+        max_time: int = 7 * 200,
+    ):
         """
         Initialize the LNS algorithm parameters.
         """
@@ -41,6 +47,11 @@ class HybridEvolutionary:
         self.local_search = LocalSearch(self.ls_strategy, self.ls_exchange_nodes)
 
         self.recombination_operators = [self.common_crossover, self.repair_crossover]
+
+        self.X = []
+        self.y = []
+        with open("classifiers/TSPA_big.pkl", "rb") as f:
+            self.clf = pickle.load(f)
 
     def get_edges(self, solution, reversed=False) -> List[Tuple[int, int]]:
         if not reversed:
@@ -228,10 +239,15 @@ class HybridEvolutionary:
             offspring = random.choice(self.recombination_operators)(parentA, parentB)
 
             if random.random() < self.mutation_probability and self.use_mutation:
-                logging.debug(f"Mutation is applied")
+                logging.debug("Mutation is applied")
                 offspring = self.destroy(offspring, nodes_cost)
                 offspring = self.repair(offspring, self.adj_matrix, self.nodes_cost)
 
+            # self.X.append(copy.deepcopy(offspring))
+            cost_pred = self.clf.predict([offspring])[0]
+            if not cost_pred:
+                logging.debug("skip LS")
+                continue
             if self.do_LS:
                 offspring = self.local_search(
                     self.adj_matrix, self.nodes_cost, offspring
@@ -240,6 +256,7 @@ class HybridEvolutionary:
             offspring_cost = calculate_path_cost(
                 offspring, self.adj_matrix, self.nodes_cost
             )
+            # self.y.append(offspring_cost)
 
             if (
                 offspring_cost < population[-1].cost
@@ -315,4 +332,6 @@ class HybridEvolutionary:
             "n_iterations": n_iterations,
             "time": time.perf_counter() - start_time,
             "max_time": self.max_time,
+            "X": self.X,
+            "y": self.y,
         }
