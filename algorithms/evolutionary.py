@@ -31,6 +31,10 @@ class HybridEvolutionary:
         self.elite_population_size = elite_population_size
         self.do_LS = do_LS
         self.max_time = max_time
+        self.destroy_rate = 0.2
+
+        self.use_mutation = False
+        self.mutation_probability = 0.2
 
         self.ls_strategy = LSStrategy.STEEPEST
         self.ls_exchange_nodes = False
@@ -85,15 +89,44 @@ class HybridEvolutionary:
 
         return offspring
 
+    def destroy(self, solution, nodes_cost):
+        """
+        Destroy operator: removes a fraction of nodes/edges from the solution.
+        """
+        num_elements_to_remove = int(len(solution) * self.destroy_rate)
+        weights = nodes_cost[solution]
+        weights = weights / np.sum(weights)
+        indices_to_remove = set(
+            np.random.choice(
+                range(len(solution)), num_elements_to_remove, replace=False, p=weights
+            )
+        )
+
+        return [
+            element for i, element in enumerate(solution) if i not in indices_to_remove
+        ]
+
+    def repair(self, partial_solution, adj_matrix, nodes_cost):
+        """
+        Repair operator: rebuilds the solution, potentially finding a better one.
+        Use best greedy heuristic here.
+        """
+        greedy = Greedy2Regret(alpha=0.5)
+        repaired_solution = greedy(
+            adj_matrix, nodes_cost, starting_solution=partial_solution
+        )
+
+        return repaired_solution
+
     def common_crossover(self, parentA, parentB) -> List[int]:
         # get common nodes
         common_nodes = set(parentA).intersection(set(parentB))
 
         offspring = self.build_base_offspring(parentA, parentB)
 
-        logging.debug(
-            f"parentA: {parentA}\n, parentB: {parentB}\n, offspring: {offspring}"
-        )
+        # logging.debug(
+        #     f"parentA: {parentA}\n, parentB: {parentB}\n, offspring: {offspring}"
+        # )
 
         already_used_nodes = set(offspring)
         # We cannot use node that consitutes a common edge as we will have a duplicate
@@ -111,9 +144,9 @@ class HybridEvolutionary:
             raise Exception("Offspring has not the same length as parents!")
 
         if len(set(offspring)) != len(offspring):
-            logging.error(
-                f"counts: {np.unique(offspring, return_counts=True)} \nOffspring: {offspring}\n ParentA: {parentA}\n ParentB: {parentB} \n Common nodes: {common_nodes}\n Common nodes to use: {list(common_nodes.difference(already_used_nodes))}\n Uncommon nodes: {list(set(range(n_possible_nodes)).difference(common_nodes))} "
-            )
+            # logging.error(
+            #     f"counts: {np.unique(offspring, return_counts=True)} \nOffspring: {offspring}\n ParentA: {parentA}\n ParentB: {parentB} \n Common nodes: {common_nodes}\n Common nodes to use: {list(common_nodes.difference(already_used_nodes))}\n Uncommon nodes: {list(set(range(n_possible_nodes)).difference(common_nodes))} "
+            # )
             raise Exception("Duplicate nodes in offspring!")
         return offspring
 
@@ -132,14 +165,14 @@ class HybridEvolutionary:
 
         offspring = self.build_base_offspring(parentA, parentB)
 
-        logging.debug(
-            f"Crossover Repair: parentA: {parentA}\n, parentB: {parentB}\n, offspring: {offspring}"
-        )
+        # logging.debug(
+        #     f"Crossover Repair: parentA: {parentA}\n, parentB: {parentB}\n, offspring: {offspring}"
+        # )
 
         if len(set(offspring)) != len(offspring):
-            logging.error(
-                f"counts: {np.unique(offspring, return_counts=True)} \nOffspring: {offspring}\n ParentA: {parentA}\n ParentB: {parentB}"
-            )
+            # logging.error(
+            #     f"counts: {np.unique(offspring, return_counts=True)} \nOffspring: {offspring}\n ParentA: {parentA}\n ParentB: {parentB}"
+            # )
             raise Exception("Duplicate nodes in offspring!")
 
         if len(offspring) == 0:
@@ -149,7 +182,7 @@ class HybridEvolutionary:
             else:
                 offspring = [parentA[0], parentA[1]]
 
-            logging.debug(f"New offspring: {offspring}")
+            # logging.debug(f"New offspring: {offspring}")
 
         return repair(offspring, self.adj_matrix, self.nodes_cost)
 
@@ -182,6 +215,10 @@ class HybridEvolutionary:
         logging.debug(f"Initial population: {[x.cost for x in population]}")
 
         n_iterations = 0
+        iterations_without_improvement = 0
+        iterations_no_imp = []
+        iterations_without_best_improvement = 0
+        iterations_no_best_imp = []
         while time.perf_counter() - start_time < self.max_time:
             # Select parents
             idx = np.random.choice(len(population), size=2, replace=False)
@@ -189,6 +226,11 @@ class HybridEvolutionary:
 
             # Generate offspring
             offspring = random.choice(self.recombination_operators)(parentA, parentB)
+
+            if random.random() < self.mutation_probability and self.use_mutation:
+                logging.debug(f"Mutation is applied")
+                offspring = self.destroy(offspring, nodes_cost)
+                offspring = self.repair(offspring, self.adj_matrix, self.nodes_cost)
 
             if self.do_LS:
                 offspring = self.local_search(
@@ -206,6 +248,21 @@ class HybridEvolutionary:
                 logging.debug(
                     f"offspring_cost: {offspring_cost} better than {population[-1].cost}"
                 )
+                if offspring_cost < population[0].cost:
+                    iterations_no_best_imp.append(iterations_without_best_improvement)
+                    logging.debug(
+                        f"After: {iterations_no_best_imp} New best solution with cost: {offspring_cost} was found"
+                    )
+                    iterations_without_best_improvement = 0
+                else:
+                    iterations_no_imp.append(iterations_without_improvement)
+                    logging.debug(
+                        f"After: {iterations_no_imp} New solution that can enter population with the cost: {offspring_cost} was found"
+                    )
+
+                    iterations_without_improvement = 0
+                    iterations_without_best_improvement += 1
+
                 population_cost.remove(population[-1].cost)
                 population_cost.add(offspring_cost)
                 population[-1] = TSPSolution(solution=offspring, cost=offspring_cost)
@@ -213,15 +270,45 @@ class HybridEvolutionary:
 
                 logging.debug(f"New population: {[x.cost for x in population]}")
             else:
-                logging.debug(
-                    f"offspring_cost: {offspring_cost} worse than {population[-1].cost}"
-                )
+                iterations_without_improvement += 1
+                iterations_without_best_improvement += 1
+                # logging.debug(
+                #     f"offspring_cost: {offspring_cost} worse than {population[-1].cost}"
+                # )
 
             logging.debug(
                 f"iteration {n_iterations}: population_cost: {population_cost}"
             )
 
             n_iterations += 1
+
+            if iterations_without_best_improvement > 200:
+                logging.debug(
+                    f"iterations_without_best_improvement: {iterations_without_best_improvement}, finish the algorithm"
+                )
+                break
+            if (iterations_without_best_improvement + 1) % 50 == 0:
+                logging.debug(
+                    f"iterations_without_best_improvement: {iterations_without_best_improvement}, add completely new solution to the population"
+                )
+                offspring = self.local_search(
+                    self.adj_matrix,
+                    self.nodes_cost,
+                    random_hamiltonian(self.adj_matrix, self.nodes_cost),
+                )
+                offspring_cost = calculate_path_cost(
+                    offspring, self.adj_matrix, self.nodes_cost
+                )
+                population_cost.remove(population[-1].cost)
+                population_cost.add(offspring_cost)
+                population[-1] = TSPSolution(solution=offspring, cost=offspring_cost)
+                population = sorted(population, key=lambda x: x.cost)
+            if iterations_without_best_improvement > 50 and not self.use_mutation:
+                logging.debug(
+                    f"iterations_without_best_improvement: {iterations_without_best_improvement}, turn on mutation"
+                )
+                self.use_mutation = True
+
         return {
             "solution": population[0].solution,
             "cost": population[0].cost,
