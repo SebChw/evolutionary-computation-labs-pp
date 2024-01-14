@@ -42,6 +42,10 @@ class HybridEvolutionary:
 
         self.recombination_operators = [self.common_crossover, self.repair_crossover]
 
+        self.X = []
+        self.y = []
+        self.model = None
+
     def get_edges(self, solution, reversed=False) -> List[Tuple[int, int]]:
         if not reversed:
             edges = [
@@ -232,6 +236,16 @@ class HybridEvolutionary:
                 offspring = self.destroy(offspring, nodes_cost)
                 offspring = self.repair(offspring, self.adj_matrix, self.nodes_cost)
 
+            # I capture offspring before LS, as I will execute neural network here in this place:
+            if self.model is not None:
+                if self.model(offspring) == 0:
+                    logging.debug(f"Neural network says that the offspring is bad")
+                    continue
+                else:
+                    self.X.append(offspring)
+            else:
+                self.X.append(offspring)
+
             if self.do_LS:
                 offspring = self.local_search(
                     self.adj_matrix, self.nodes_cost, offspring
@@ -240,7 +254,7 @@ class HybridEvolutionary:
             offspring_cost = calculate_path_cost(
                 offspring, self.adj_matrix, self.nodes_cost
             )
-
+            self.y.append(offspring_cost)
             if (
                 offspring_cost < population[-1].cost
                 and offspring_cost not in population_cost
@@ -308,6 +322,20 @@ class HybridEvolutionary:
                     f"iterations_without_best_improvement: {iterations_without_best_improvement}, turn on mutation"
                 )
                 self.use_mutation = True
+
+            if (n_iterations + 1) % 100 == 0:
+                logging.debug("Training neural network")
+                y = (
+                    y - np.mean(y)
+                ) > 0  # Solution is good if it eventually was better than the average of all solutions
+                y_train, y_test = split_train_test(y, 0.8)
+                model = self.model.fit(self.X, y_train)
+
+                if model.accuracy(self.X, y_test) > 0.8:
+                    logging.debug(
+                        "Neural network is good enough, add it to the pipeline"
+                    )
+                    self.model = model
 
         return {
             "solution": population[0].solution,
